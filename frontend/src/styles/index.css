@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-white text-foreground antialiased;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2;
+  }
+}
+
+@layer components {
+  .jb-card {
+    @apply rounded-lg border border-border bg-white shadow-sm;
+  }
+
+  .jb-input {
+    @apply w-full rounded-md border border-border bg-white px-3 py-2 text-sm text-foreground
+      placeholder:text-muted focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary
+      disabled:cursor-not-allowed disabled:bg-surface;
+  }
+
+  .jb-label {
+    @apply mb-1 block text-sm font-medium text-foreground;
+  }
+}

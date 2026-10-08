@@ -1,13 +1,23 @@
 {
-  "name": "jagobridge-app",
+  "name": "jagobridge",
   "version": "1.0.0",
-  "description": "Full-stack React, Node.js, and PostgreSQL Framework",
+  "description": "JagoBridge — internal LLM access control and OpenAI-compatible AI gateway",
+  "private": true,
   "scripts": {
-    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
-    "dev:client": "npm --prefix client run dev",
-    "dev:server": "npm --prefix server run dev",
-    "build:client": "npm --prefix client run build",
-    "install:all": "npm install && npm --prefix server install && npm --prefix client install"
+    "dev": "concurrently -n backend,frontend -c blue,magenta \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build": "npm --prefix backend run build && npm --prefix frontend run build",
+    "build:backend": "npm --prefix backend run build",
+    "build:frontend": "npm --prefix frontend run build",
+    "install:all": "npm install && npm --prefix backend install && npm --prefix frontend install",
+    "typecheck": "npm --prefix backend run typecheck && npm --prefix frontend run typecheck",
+    "test": "npm --prefix backend test && npm --prefix frontend test",
+    "migrate:latest": "npm --prefix backend run migrate:latest",
+    "migrate:rollback": "npm --prefix backend run migrate:rollback",
+    "seed:run": "npm --prefix backend run seed:run",
+    "infra:up": "docker compose -f deploy/docker-compose.yml up -d",
+    "infra:down": "docker compose -f deploy/docker-compose.yml down"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
