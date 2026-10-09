@@ -39,54 +39,71 @@ export function AcceptInvitePage() {
 
   if (!token) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-surface px-4">
-        <div className="jb-card max-w-md p-6 text-center">
-          <h1 className="text-lg font-semibold">This invitation is no longer valid</h1>
-          <p className="mt-2 text-sm text-muted">Please ask an administrator to send you a new invitation.</p>
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+        <div className="jb-card max-w-md p-8 text-center rounded-2xl shadow-xl">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-warning">
+            <span className="text-xl">⚠️</span>
+          </div>
+          <h1 className="text-xl font-bold text-slate-900">Undangan Tidak Berlaku</h1>
+          <p className="mt-2 text-sm text-slate-500">Tautan undangan ini telah kedaluwarsa atau tidak valid. Silakan hubungi administrator.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface px-4">
-      <form onSubmit={onSubmit} className="jb-card w-full max-w-sm space-y-4 p-6">
-        <div>
-          <h1 className="text-xl font-semibold">Accept your invitation</h1>
-          <p className="mt-1 text-sm text-muted">Set your name and password to join JagoBridge.</p>
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12">
+      <div className="w-full max-w-md space-y-6">
+        <div className="text-center">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#0b22db] to-[#040e5e] text-white shadow-md shadow-primary/25">
+            <span className="text-xl font-bold">JB</span>
+          </div>
+          <h1 className="text-2xl font-bold text-slate-900">Terima Undangan Anda</h1>
+          <p className="mt-1.5 text-sm text-slate-500">Lengkapi data diri dan buat kata sandi untuk bergabung ke JagoBridge.</p>
         </div>
 
-        <div>
-          <Label htmlFor="name">Full name</Label>
-          <Input id="name" required value={name} onChange={(event) => setName(event.target.value)} />
-          <FieldError messages={fieldErrors.name} />
-        </div>
+        <form onSubmit={onSubmit} className="jb-card space-y-5 p-8 rounded-2xl shadow-xl border border-slate-200/80">
+          <div>
+            <Label htmlFor="name">Nama Lengkap</Label>
+            <Input
+              id="name"
+              required
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder="Nama Lengkap Anda"
+              className="h-11"
+            />
+            <FieldError messages={fieldErrors.name} />
+          </div>
 
-        <div>
-          <Label htmlFor="password">Password</Label>
-          <Input
-            id="password"
-            type="password"
-            required
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
-          <p className="mt-1 text-xs text-muted">
-            At least 10 characters, with an uppercase letter, a lowercase letter, and a digit.
-          </p>
-          <FieldError messages={fieldErrors.password} />
-        </div>
+          <div>
+            <Label htmlFor="password">Kata Sandi Baru</Label>
+            <Input
+              id="password"
+              type="password"
+              required
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="••••••••"
+              className="h-11"
+            />
+            <p className="mt-1.5 text-xs text-slate-400">
+              Minimal 10 karakter dengan huruf besar, huruf kecil, dan angka.
+            </p>
+            <FieldError messages={fieldErrors.password} />
+          </div>
 
-        {error ? (
-          <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-danger" role="alert">
-            {error}
-          </p>
-        ) : null}
+          {error ? (
+            <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-danger" role="alert">
+              {error}
+            </p>
+          ) : null}
 
-        <Button type="submit" loading={submitting} className="w-full">
-          Join JagoBridge
-        </Button>
-      </form>
+          <Button type="submit" size="lg" loading={submitting} className="w-full">
+            Bergabung ke JagoBridge →
+          </Button>
+        </form>
+      </div>
     </div>
   );
 }

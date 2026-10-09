@@ -1,6 +1,8 @@
 import { z } from "zod";
+import { OVERAGE_ACTIONS } from "../core/constants.js";
 
 const limit = z.number().int().min(0);
+const overageAction = z.enum(OVERAGE_ACTIONS);
 
 export const createProfileSchema = z.object({
   name: z.string().min(1).max(100),
@@ -10,6 +12,9 @@ export const createProfileSchema = z.object({
   limit_weekly_tokens: limit.default(0),
   limit_rpm: limit.default(0),
   max_output_tokens_per_request: limit.default(0),
+  price_idr: limit.default(0),
+  tier_label: z.string().max(50).nullable().optional(),
+  overage_action: overageAction.default("cutoff"),
   is_default: z.boolean().default(false),
   model_ids: z.array(z.string().uuid()).optional(),
   feature_ids: z.array(z.string().uuid()).optional(),
@@ -24,6 +29,9 @@ export const updateProfileSchema = z
     limit_weekly_tokens: limit.optional(),
     limit_rpm: limit.optional(),
     max_output_tokens_per_request: limit.optional(),
+    price_idr: limit.optional(),
+    tier_label: z.string().max(50).nullable().optional(),
+    overage_action: overageAction.optional(),
     is_default: z.boolean().optional(),
   })
   .refine((value) => Object.keys(value).length > 0, {

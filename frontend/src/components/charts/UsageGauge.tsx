@@ -5,7 +5,7 @@ const STATE_COLORS: Record<string, string> = {
   ok: "#16A34A",
   warning: "#D97706",
   exceeded: "#DC2626",
-  unlimited: "#2563EB",
+  unlimited: "#0d26de",
 };
 
 export function UsageGauge({
@@ -19,7 +19,7 @@ export function UsageGauge({
 }) {
   const isUnlimited = window.state === "unlimited";
   const usedPercent = isUnlimited ? 0 : percent(window.used_tokens, window.limit_tokens);
-  const color = STATE_COLORS[window.state] ?? "#2563EB";
+  const color = STATE_COLORS[window.state] ?? "#0d26de";
 
   return (
     <div className="jb-card p-5">

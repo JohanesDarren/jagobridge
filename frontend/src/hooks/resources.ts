@@ -7,6 +7,7 @@ import type {
   ConnectionTest,
   CreatedApiKey,
   Feature,
+  HealthStatus,
   Invitation,
   Model,
   ModelCatalogResponse,
@@ -19,6 +20,23 @@ import type {
   User,
   UserDetail,
 } from "../types/api";
+
+// ------------------------------------------------------------------ health
+/**
+ * Public /health probe: database, Redis and the 9router upstream. Polled while
+ * the dashboard's live monitoring toggle is on.
+ */
+export function useHealth(refetchIntervalMs = 0) {
+  return useQuery({
+    queryKey: ["health"],
+    queryFn: async () => {
+      const response = await fetch("/health", { credentials: "include" });
+      const payload = (await response.json()) as HealthStatus;
+      return payload;
+    },
+    refetchInterval: refetchIntervalMs > 0 ? refetchIntervalMs : false,
+  });
+}
 
 // ------------------------------------------------------------------ models
 export function useModelCatalog(search?: string) {
@@ -355,23 +373,40 @@ export function useUsageSummary(userId?: string) {
   });
 }
 
-export function useUsageStats(params: { range: string; from?: string; to?: string; user_id?: string }) {
+export function useUsageStats(params: {
+  range: string;
+  from?: string;
+  to?: string;
+  user_id?: string;
+  refetchIntervalMs?: number;
+}) {
+  const { refetchIntervalMs, ...query } = params;
   return useQuery({
-    queryKey: ["usage", "stats", params],
+    queryKey: ["usage", "stats", query],
     queryFn: async () => {
-      const response = await apiRequest<SuccessEnvelope<UsageStats>>(`/usage/stats${buildQuery(params)}`);
+      const response = await apiRequest<SuccessEnvelope<UsageStats>>(`/usage/stats${buildQuery(query)}`);
       return response.data;
     },
+    refetchInterval: refetchIntervalMs && refetchIntervalMs > 0 ? refetchIntervalMs : false,
   });
 }
 
-export function useUsageEvents(params: { page?: number; limit?: number; user_id?: string; from?: string; to?: string }) {
+export function useUsageEvents(params: {
+  page?: number;
+  limit?: number;
+  user_id?: string;
+  from?: string;
+  to?: string;
+  refetchIntervalMs?: number;
+}) {
+  const { refetchIntervalMs, ...query } = params;
   return useQuery({
-    queryKey: ["usage", "events", params],
+    queryKey: ["usage", "events", query],
     queryFn: async () => {
-      const response = await apiRequest<PaginatedEnvelope<UsageEvent>>(`/usage/events${buildQuery(params)}`);
+      const response = await apiRequest<PaginatedEnvelope<UsageEvent>>(`/usage/events${buildQuery(query)}`);
       return { events: response.data, meta: response.meta };
     },
+    refetchInterval: refetchIntervalMs && refetchIntervalMs > 0 ? refetchIntervalMs : false,
   });
 }
 

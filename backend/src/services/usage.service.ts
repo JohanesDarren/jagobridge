@@ -146,6 +146,11 @@ export async function checkAdmission(
 ): Promise<AdmissionResult> {
   const snapshot = await getQuotaSnapshot(userId, limits);
 
+  // Package "Overage: allow" keeps serving after the window is exhausted.
+  if (limits.overageAction === "allow") {
+    return { admitted: true, snapshot };
+  }
+
   const evaluate = (window: WindowUsage): { blocked: boolean; retryAfter?: number } => {
     if (window.state === "unlimited") return { blocked: false };
     if (window.usedTokens >= window.limitTokens) {
@@ -178,9 +183,13 @@ export interface RecordUsageInput {
   status: UsageStatus;
   promptTokens: number;
   completionTokens: number;
+  /** Prompt tokens served from the upstream prompt cache. */
+  cachedTokens: number;
   tokenMultiplier: number;
   usageEstimated: boolean;
   latencyMs: number | null;
+  /** HTTP status from 9router; null when no upstream response was received. */
+  upstreamStatus: number | null;
 }
 
 /** Records one usage event. Never blocks the response longer than necessary. */

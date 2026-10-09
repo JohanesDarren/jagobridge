@@ -17,7 +17,7 @@ export const usageEventsQuerySchema = z.object({
 
 export const usageStatsQuerySchema = z.object({
   user_id: z.string().uuid().optional(),
-  range: z.enum(["24h", "7d", "30d", "custom"]).default("7d"),
+  range: z.enum(["today", "24h", "7d", "30d", "60d", "all", "custom"]).default("7d"),
   from: z.string().datetime().optional(),
   to: z.string().datetime().optional(),
   model_id: z.string().uuid().optional(),

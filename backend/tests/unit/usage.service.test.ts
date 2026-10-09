@@ -1,5 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("../../src/repositories/usage.repository.js", () => ({
+  getUserWindowEvents: vi.fn(),
+  insertUsageEvent: vi.fn(),
+}));
+
+import { getUserWindowEvents } from "../../src/repositories/usage.repository.js";
 import {
+  checkAdmission,
   computeResetAt,
   computeWindowState,
   estimateTokens,
@@ -8,6 +16,12 @@ import {
 
 const HOUR_MS = 60 * 60 * 1000;
 const FIVE_HOUR_MS = 5 * HOUR_MS;
+
+const mockedWindowEvents = vi.mocked(getUserWindowEvents);
+
+afterEach(() => {
+  mockedWindowEvents.mockReset();
+});
 
 describe("usage calculations", () => {
   it("applies the token multiplier", () => {
@@ -51,5 +65,48 @@ describe("usage calculations", () => {
 
   it("returns null for unlimited windows", () => {
     expect(computeResetAt([], 0, 5 * 60 * 60)).toBeNull();
+  });
+});
+
+describe("quota admission (package overage)", () => {
+  const limits = {
+    limit5hTokens: 1000,
+    limitWeeklyTokens: 1000,
+    limitRpm: 0,
+    maxOutputTokensPerRequest: 0,
+  };
+
+  it("blocks requests once a window is exhausted when overage is cut-off", async () => {
+    mockedWindowEvents.mockResolvedValue([
+      { created_at: new Date(), weighted_tokens: "2000" },
+    ]);
+    const result = await checkAdmission("user-1", { ...limits, overageAction: "cutoff" });
+    expect(result.admitted).toBe(false);
+    expect(result.window).toBe("five_hour");
+  });
+
+  it("defaults to cut-off when the package has no overage action", async () => {
+    mockedWindowEvents.mockResolvedValue([
+      { created_at: new Date(), weighted_tokens: "2000" },
+    ]);
+    const result = await checkAdmission("user-1", limits);
+    expect(result.admitted).toBe(false);
+  });
+
+  it("keeps serving over the limit when overage is set to allow", async () => {
+    mockedWindowEvents.mockResolvedValue([
+      { created_at: new Date(), weighted_tokens: "2000" },
+    ]);
+    const result = await checkAdmission("user-1", { ...limits, overageAction: "allow" });
+    expect(result.admitted).toBe(true);
+    expect(result.snapshot.weekly.state).toBe("exceeded");
+  });
+
+  it("admits when usage is under the limit", async () => {
+    mockedWindowEvents.mockResolvedValue([
+      { created_at: new Date(), weighted_tokens: "100" },
+    ]);
+    const result = await checkAdmission("user-1", { ...limits, overageAction: "cutoff" });
+    expect(result.admitted).toBe(true);
   });
 });

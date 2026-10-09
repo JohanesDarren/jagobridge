@@ -3,7 +3,7 @@
 Internal LLM access control and an OpenAI-compatible AI gateway for the team.
 
 JagoBridge syncs the model catalog from **9router**, lets admins grant models, features, and
-rolling usage limits (5-hour and weekly) per person through access profiles and per-user
+rolling usage limits (5-hour and weekly) per person through packages (access profiles) and per-user
 overrides, and exposes an OpenAI-compatible endpoint so members can call the models they are
 allowed to use with their own API key. Every request is authenticated, checked against access
 rules and limits, forwarded to 9router, and recorded.
@@ -93,7 +93,9 @@ npm run seed:run
 ```
 
 Seeds the four default features (`streaming`, `tool_calling`, `vision_input`, `json_mode`), the
-four default access profiles (Member, Power User, Admin, Vision), and default system settings.
+default package catalogue (Free, Starter, Basic, Pro, Business, Enterprise plus the internal
+Admin profile) and default system settings. Packages live in `access_profiles` and carry a tier
+label, a monthly price, quotas, a rate limit and an overage action.
 
 ### 5. Create the first admin
 
@@ -101,11 +103,14 @@ There is no UI path to create the first admin (PRD F-02):
 
 ```bash
 npm --prefix backend run cli -- create-admin \
-  --name "Rina Admin" --email "rina@team.example" --password "Passw0rdJago"
+  --name "Administrator" --email "admin@jago.com" --password "Passw0rdJago"
 ```
 
 Omit the flags to be prompted interactively. Passwords need at least 10 characters with an
 uppercase letter, a lowercase letter, and a digit.
+
+The bundled seed (`npm run seed:run`) creates `admin@jago.com` by default; override it with
+`SEED_ADMIN_NAME` / `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD`.
 
 ### 6. Run the app
 
@@ -165,17 +170,22 @@ Release 1 is a single production deployment after all P0 and P1 features are acc
 - Migrations for all 18 tables, seeds, Docker infra
 - Auth: login with lockout, rotating refresh tokens with reuse detection, change password,
   accept invitation
-- Users, invitations, access profiles, features, API keys, model catalog + 9router sync,
-  model/feature overrides
-- Gateway `/v1/models` and `/v1/chat/completions` with the full pipeline, SSE streaming,
-  usage recording, OpenAI-shaped errors, and usage/rate-limit headers
-- Usage summary/stats/events + CSV export, settings, audit log, `/health`
+- Users, invitations, packages (access profiles), features, API keys, model catalog + 9router
+  sync, model/feature overrides
+- Gateway `/v1/models` and `/v1/chat/completions` with the full pipeline, SSE streaming, usage
+  recording (including the upstream HTTP status returned by 9router), OpenAI-shaped errors, and
+  usage/rate-limit headers
+- Usage summary/stats/events + CSV export (team-wide for admins, own scope for members),
+  settings, audit log, `/health`
 - Unit tests for access rules and rolling-window math, plus end-to-end smoke verification
 
 **Frontend (P0 screens)**
 - Login, accept invitation, change password, usage notice
-- Dashboard (member gauges / admin team summary), Models, Users + user detail, Access Profiles,
-  Features, Usage, API Keys, Audit Log, Settings, Profile
+- Dashboard (live monitoring, gateway pipeline, KPI cards, service health, 24h traffic chart,
+  status-code donut, endpoint monitoring, activity logs), Model catalog (provider-grouped,
+  inline status toggles, aliases, token multipliers), Clients & Access (users + client detail,
+  quota bars, row actions), API Packages (card grid with full CRUD), Features, Usage, API Keys,
+  Audit Log, Settings
 
 **Not yet built (P1/P2)**: chat playground (F-14), and the P2 backlog (2FA, limit-warning
 emails, embeddings, forgot-password by email, shared quota pool). Lint/Prettier configs,

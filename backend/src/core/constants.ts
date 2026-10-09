@@ -37,6 +37,15 @@ export type Role = (typeof ROLES)[number];
 export const OVERRIDE_EFFECTS = ["allow", "deny"] as const;
 export type OverrideEffect = (typeof OVERRIDE_EFFECTS)[number];
 
+/**
+ * What the gateway does once a user's quota window is exhausted (package
+ * "Overage" setting):
+ * - cutoff: reject the request (default, matches PRD F-09).
+ * - allow: keep serving requests over the limit and let usage accrue.
+ */
+export const OVERAGE_ACTIONS = ["cutoff", "allow"] as const;
+export type OverageAction = (typeof OVERAGE_ACTIONS)[number];
+
 export const QUOTA_WARNING_THRESHOLD = 0.8; // 80%
 export const QUOTA_EXCEEDED_THRESHOLD = 1.0; // 100%
 

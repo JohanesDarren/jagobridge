@@ -44,62 +44,73 @@ export function ChangePasswordPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface px-4">
-      <form onSubmit={onSubmit} className="jb-card w-full max-w-sm space-y-4 p-6">
-        <div>
-          <h1 className="text-xl font-semibold">Change your password</h1>
-          <p className="mt-1 text-sm text-muted">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12">
+      <div className="w-full max-w-md space-y-6">
+        <div className="text-center">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#0b22db] to-[#040e5e] text-white shadow-md shadow-primary/25">
+            <span className="text-xl font-bold">🔒</span>
+          </div>
+          <h1 className="text-2xl font-bold text-slate-900">Ubah Kata Sandi</h1>
+          <p className="mt-1.5 text-sm text-slate-500">
             {user?.must_change_password
-              ? "You must set a new password before continuing."
-              : "Choose a new password for your account."}
+              ? "Anda harus mengatur kata sandi baru sebelum dapat melanjutkan ke aplikasi."
+              : "Perbarui kata sandi untuk mengamankan akun JagoBridge Anda."}
           </p>
         </div>
 
-        <div>
-          <Label htmlFor="current">Current password</Label>
-          <Input
-            id="current"
-            type="password"
-            required
-            value={currentPassword}
-            onChange={(event) => setCurrentPassword(event.target.value)}
-          />
-          <FieldError messages={fieldErrors.current_password} />
-        </div>
+        <form onSubmit={onSubmit} className="jb-card space-y-5 p-8 rounded-2xl shadow-xl border border-slate-200/80">
+          <div>
+            <Label htmlFor="current">Kata Sandi Saat Ini</Label>
+            <Input
+              id="current"
+              type="password"
+              required
+              value={currentPassword}
+              onChange={(event) => setCurrentPassword(event.target.value)}
+              placeholder="••••••••"
+              className="h-11"
+            />
+            <FieldError messages={fieldErrors.current_password} />
+          </div>
 
-        <div>
-          <Label htmlFor="new">New password</Label>
-          <Input
-            id="new"
-            type="password"
-            required
-            value={newPassword}
-            onChange={(event) => setNewPassword(event.target.value)}
-          />
-          <FieldError messages={fieldErrors.new_password} />
-        </div>
+          <div>
+            <Label htmlFor="new">Kata Sandi Baru</Label>
+            <Input
+              id="new"
+              type="password"
+              required
+              value={newPassword}
+              onChange={(event) => setNewPassword(event.target.value)}
+              placeholder="••••••••"
+              className="h-11"
+            />
+            <FieldError messages={fieldErrors.new_password} />
+          </div>
 
-        <div>
-          <Label htmlFor="confirm">Confirm new password</Label>
-          <Input
-            id="confirm"
-            type="password"
-            required
-            value={confirmPassword}
-            onChange={(event) => setConfirmPassword(event.target.value)}
-          />
-        </div>
+          <div>
+            <Label htmlFor="confirm">Konfirmasi Kata Sandi Baru</Label>
+            <Input
+              id="confirm"
+              type="password"
+              required
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              placeholder="••••••••"
+              className="h-11"
+            />
+          </div>
 
-        {error ? (
-          <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-danger" role="alert">
-            {error}
-          </p>
-        ) : null}
+          {error ? (
+            <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-danger" role="alert">
+              {error}
+            </p>
+          ) : null}
 
-        <Button type="submit" loading={submitting} className="w-full">
-          Update password
-        </Button>
-      </form>
+          <Button type="submit" size="lg" loading={submitting} className="w-full">
+            Simpan Kata Sandi Baru →
+          </Button>
+        </form>
+      </div>
     </div>
   );
 }

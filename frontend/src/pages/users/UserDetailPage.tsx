@@ -120,7 +120,7 @@ export function UserDetailPage() {
         <div>
           <Link to="/users" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
             <ArrowLeft className="h-3.5 w-3.5" />
-            Back to users
+            Back to clients
           </Link>
           <h1 className="mt-1 text-xl font-semibold">{user.name}</h1>
           <p className="text-sm text-muted">{user.email}</p>
@@ -136,7 +136,7 @@ export function UserDetailPage() {
         <CardBody className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label htmlFor="profile">Access profile</Label>
+              <Label htmlFor="profile">Package</Label>
               <Select id="profile" value={profileId} onChange={(event) => setProfileId(event.target.value)}>
                 <option value="">None</option>
                 {(profilesQuery.data ?? []).map((profile) => (

@@ -1,5 +1,5 @@
 import { redis } from "../db/redis.js";
-import type { FeatureCode, OverrideEffect, Role } from "../core/constants.js";
+import type { FeatureCode, OverageAction, OverrideEffect, Role } from "../core/constants.js";
 import type { UserRow } from "../repositories/user.repository.js";
 import type { ModelRow } from "../repositories/model.repository.js";
 import {
@@ -16,6 +16,8 @@ export interface EffectiveLimits {
   limitWeeklyTokens: number;
   limitRpm: number;
   maxOutputTokensPerRequest: number;
+  /** Package "Overage" behaviour once a quota window is exhausted. */
+  overageAction?: OverageAction;
 }
 
 export interface EffectiveAccess {
@@ -99,6 +101,7 @@ export async function resolveEffectiveAccess(user: UserRow): Promise<EffectiveAc
       limitWeeklyTokens: overrideWeekly ?? Number(profile?.limit_weekly_tokens ?? 0),
       limitRpm: overrideRpm ?? profile?.limit_rpm ?? 0,
       maxOutputTokensPerRequest: profile?.max_output_tokens_per_request ?? 0,
+      overageAction: profile?.overage_action ?? "cutoff",
     },
   };
 

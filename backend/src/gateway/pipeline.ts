@@ -260,8 +260,12 @@ export interface RecordGatewayUsageInput {
   status: UsageStatus;
   promptTokens: number;
   completionTokens: number;
+  /** Prompt tokens served from the upstream prompt cache (defaults to 0). */
+  cachedTokens?: number;
   usageEstimated: boolean;
   latencyMs: number | null;
+  /** HTTP status returned by 9router; null when no response was received. */
+  upstreamStatus?: number | null;
 }
 
 /** Step 9: records a usage event with the model's multiplier snapshotted. */
@@ -277,9 +281,11 @@ export async function recordGatewayUsage(input: RecordGatewayUsageInput): Promis
       status: input.status,
       promptTokens: input.promptTokens,
       completionTokens: input.completionTokens,
+      cachedTokens: input.cachedTokens ?? 0,
       tokenMultiplier: Number(input.model.token_multiplier),
       usageEstimated: input.usageEstimated,
       latencyMs: input.latencyMs,
+      upstreamStatus: input.upstreamStatus ?? null,
     });
   } catch (error) {
     logger.error({ err: error, requestId: input.requestId }, "usage_record_failed");

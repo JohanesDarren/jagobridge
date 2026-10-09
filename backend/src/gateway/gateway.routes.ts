@@ -93,7 +93,7 @@ gatewayRouter.post(
       const forward = await forwardWithFirstByteTimeout(result, controller.signal, timeout.firstByteMs);
 
       if (forward === null) {
-        await recordFailure(ctx, result, "upstream_error", 0, 0, false);
+        await recordFailure(ctx, result, "upstream_error", 0, 0, false, null);
         await result.concurrency.release();
         settled = true;
         sendGatewayError(res, openAiError(504, "UPSTREAM_TIMEOUT", "9router did not respond in time"));
@@ -102,7 +102,7 @@ gatewayRouter.post(
 
       if (!forward.ok) {
         const upstreamError = await readUpstreamError(forward.response);
-        await recordFailure(ctx, result, "upstream_error", 0, 0, false);
+        await recordFailure(ctx, result, "upstream_error", 0, 0, false, upstreamError.status);
         await result.concurrency.release();
         settled = true;
         if (upstreamError.status >= 500) {
@@ -175,7 +175,10 @@ async function forwardWithFirstByteTimeout(
   signal: AbortSignal,
   firstByteMs: number,
 ): Promise<Awaited<ReturnType<typeof forwardChatCompletion>> | null> {
+  // Always send an explicit boolean: 9router defaults to streaming when `stream`
+  // is omitted, which would break the non-streaming response path (PRD F-09).
   const body = { ...result.body };
+  body.stream = body.stream === true;
   if (body.stream === true) {
     body.stream_options = { include_usage: true };
   }
@@ -212,6 +215,7 @@ async function recordFailure(
   promptTokens: number,
   completionTokens: number,
   estimated: boolean,
+  upstreamStatus: number | null = null,
 ): Promise<void> {
   await recordGatewayUsage({
     requestId: ctx.requestId,
@@ -224,6 +228,7 @@ async function recordFailure(
     completionTokens,
     usageEstimated: estimated,
     latencyMs: Date.now() - ctx.startedAt,
+    upstreamStatus,
   });
 }
 
@@ -234,11 +239,16 @@ async function handleNonStreaming(
   ctx: RequestContext,
 ): Promise<void> {
   const json = (await upstream.json()) as {
-    usage?: { prompt_tokens?: number; completion_tokens?: number };
+    usage?: {
+      prompt_tokens?: number;
+      completion_tokens?: number;
+      prompt_tokens_details?: { cached_tokens?: number };
+    };
     [key: string]: unknown;
   };
   const promptTokens = json.usage?.prompt_tokens ?? estimatePromptTokens(result.body);
   const completionTokens = json.usage?.completion_tokens ?? 0;
+  const cachedTokens = json.usage?.prompt_tokens_details?.cached_tokens ?? 0;
   const estimated = json.usage === undefined;
 
   await recordGatewayUsage({
@@ -250,8 +260,10 @@ async function handleNonStreaming(
     status: "success",
     promptTokens,
     completionTokens,
+    cachedTokens,
     usageEstimated: estimated,
     latencyMs: Date.now() - ctx.startedAt,
+    upstreamStatus: upstream.status,
   });
   await result.concurrency.release();
 
@@ -278,13 +290,14 @@ async function handleStreaming(
   const decoder = new TextDecoder();
   let buffer = "";
   let completionTokens = 0;
+  let cachedTokens = 0;
   let estimatedCompletionChars = 0;
   let promptTokens: number | null = null;
   let streamUsageSeen = false;
   let finished = false;
 
   if (!reader) {
-    await recordFailure(ctx, result, "upstream_error", estimatePromptTokens(result.body), 0, true);
+    await recordFailure(ctx, result, "upstream_error", estimatePromptTokens(result.body), 0, true, upstream.status);
     await result.concurrency.release();
     res.end();
     return;
@@ -315,13 +328,18 @@ async function handleStreaming(
         if (payload === "[DONE]") continue;
         try {
           const parsed = JSON.parse(payload) as {
-            usage?: { prompt_tokens?: number; completion_tokens?: number };
+            usage?: {
+              prompt_tokens?: number;
+              completion_tokens?: number;
+              prompt_tokens_details?: { cached_tokens?: number };
+            };
             choices?: Array<{ delta?: { content?: string } }>;
           };
           if (parsed.usage) {
             streamUsageSeen = true;
             promptTokens = parsed.usage.prompt_tokens ?? promptTokens;
             completionTokens = parsed.usage.completion_tokens ?? completionTokens;
+            cachedTokens = parsed.usage.prompt_tokens_details?.cached_tokens ?? cachedTokens;
           }
           const text = parsed.choices?.[0]?.delta?.content;
           if (typeof text === "string") estimatedCompletionChars += text.length;
@@ -353,8 +371,10 @@ async function handleStreaming(
     status: cancelled ? "client_cancelled" : "success",
     promptTokens: finalPrompt,
     completionTokens: finalCompletion,
+    cachedTokens,
     usageEstimated: !streamUsageSeen,
     latencyMs: Date.now() - ctx.startedAt,
+    upstreamStatus: upstream.status,
   });
   await result.concurrency.release();
 

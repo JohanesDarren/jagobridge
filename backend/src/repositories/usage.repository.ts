@@ -13,10 +13,13 @@ export interface UsageEventRow {
   status: UsageStatus;
   prompt_tokens: number;
   completion_tokens: number;
+  cached_tokens: number;
   token_multiplier: string;
   weighted_tokens: string;
   usage_estimated: boolean;
   latency_ms: number | null;
+  /** HTTP status returned by 9router; null when the request never got a response. */
+  upstream_status: number | null;
   created_at: Date;
 }
 
@@ -30,10 +33,12 @@ export interface InsertUsageEventInput {
   status: UsageStatus;
   promptTokens: number;
   completionTokens: number;
+  cachedTokens: number;
   tokenMultiplier: number;
   weightedTokens: number;
   usageEstimated: boolean;
   latencyMs: number | null;
+  upstreamStatus: number | null;
 }
 
 export async function insertUsageEvent(input: InsertUsageEventInput): Promise<UsageEventRow> {
@@ -48,10 +53,12 @@ export async function insertUsageEvent(input: InsertUsageEventInput): Promise<Us
       status: input.status,
       prompt_tokens: input.promptTokens,
       completion_tokens: input.completionTokens,
+      cached_tokens: input.cachedTokens,
       token_multiplier: String(input.tokenMultiplier),
       weighted_tokens: String(input.weightedTokens),
       usage_estimated: input.usageEstimated,
       latency_ms: input.latencyMs,
+      upstream_status: input.upstreamStatus,
     })
     .returning("*");
   return row!;
@@ -73,6 +80,26 @@ export async function getUserWindowEvents(
     .where("created_at", ">=", since)
     .orderBy("created_at", "asc")
     .select<UsageEventWithTime[]>("created_at", "weighted_tokens");
+}
+
+/**
+ * Bulk variant of the window sum: total weighted tokens per user inside a
+ * rolling window. Used by the console user list to render quota bars without
+ * one query per row.
+ */
+export async function sumWeightedTokensByUser(
+  userIds: string[],
+  windowSeconds: number,
+): Promise<Map<string, number>> {
+  if (userIds.length === 0) return new Map();
+  const since = new Date(Date.now() - windowSeconds * 1000);
+  const rows = await db("usage_events")
+    .whereIn("user_id", userIds)
+    .where("created_at", ">=", since)
+    .select<{ user_id: string; total: string | null }[]>("user_id")
+    .sum("weighted_tokens as total")
+    .groupBy("user_id");
+  return new Map(rows.map((row) => [row.user_id, Number(row.total ?? 0)]));
 }
 
 export async function sumWeightedTokensSince(userId: string, since: Date): Promise<number> {
@@ -172,6 +199,11 @@ export interface TotalsRow {
   completion_tokens: string | null;
   requests: string;
   errors: string;
+  cached_tokens: string | null;
+  avg_latency_ms: string | null;
+  success_2xx: string;
+  client_4xx: string;
+  server_5xx: string;
 }
 
 export async function usageTotals(filter: ListUsageFilter): Promise<TotalsRow> {
@@ -179,16 +211,94 @@ export async function usageTotals(filter: ListUsageFilter): Promise<TotalsRow> {
     .select(db.raw("coalesce(sum(weighted_tokens),0) as weighted_tokens"))
     .select(db.raw("coalesce(sum(prompt_tokens),0) as prompt_tokens"))
     .select(db.raw("coalesce(sum(completion_tokens),0) as completion_tokens"))
+    .select(db.raw("coalesce(sum(cached_tokens),0) as cached_tokens"))
     .select(db.raw("count(*) as requests"))
     .select(db.raw("count(*) filter (where status <> 'success') as errors"))
+    .select(db.raw("coalesce(avg(latency_ms),0) as avg_latency_ms"))
+    .select(db.raw("count(*) filter (where upstream_status between 200 and 299) as success_2xx"))
+    .select(db.raw("count(*) filter (where upstream_status between 400 and 499) as client_4xx"))
+    .select(db.raw("count(*) filter (where upstream_status >= 500) as server_5xx"))
     .first<TotalsRow>();
-  return row ?? { weighted_tokens: "0", prompt_tokens: "0", completion_tokens: "0", requests: "0", errors: "0" };
+  return (
+    row ?? {
+      weighted_tokens: "0",
+      prompt_tokens: "0",
+      completion_tokens: "0",
+      requests: "0",
+      errors: "0",
+      cached_tokens: "0",
+      avg_latency_ms: "0",
+      success_2xx: "0",
+      client_4xx: "0",
+      server_5xx: "0",
+    }
+  );
+}
+
+export interface StatusCodeRow {
+  upstream_status: number | null;
+  requests: string;
+}
+
+/** Request counts per upstream HTTP status code (null = never reached upstream). */
+export async function usageByStatusCode(filter: ListUsageFilter): Promise<StatusCodeRow[]> {
+  return applyUsageFilter(db("usage_events"), filter)
+    .select("upstream_status")
+    .count("id as requests")
+    .groupBy("upstream_status")
+    .orderByRaw("upstream_status asc nulls last") as unknown as StatusCodeRow[];
+}
+
+export interface HourlyUsageRow {
+  hour: string;
+  requests: string;
+  weighted_tokens: string;
+  prompt_tokens: string;
+  completion_tokens: string;
+  cached_tokens: string;
+}
+
+/** Hourly buckets for the real-time traffic chart. */
+export async function usageHourly(filter: ListUsageFilter): Promise<HourlyUsageRow[]> {
+  return applyUsageFilter(db("usage_events"), filter)
+    .select(db.raw("to_char(date_trunc('hour', created_at), 'YYYY-MM-DD HH24:00') as hour"))
+    .sum("weighted_tokens as weighted_tokens")
+    .count("id as requests")
+    .select(db.raw("coalesce(sum(prompt_tokens),0) as prompt_tokens"))
+    .select(db.raw("coalesce(sum(completion_tokens),0) as completion_tokens"))
+    .select(db.raw("coalesce(sum(cached_tokens),0) as cached_tokens"))
+    .groupByRaw("date_trunc('hour', created_at)")
+    .orderByRaw("date_trunc('hour', created_at) asc") as unknown as HourlyUsageRow[];
+}
+
+export interface ProviderUsageRow {
+  provider: string;
+  requests: string;
+  weighted_tokens: string;
+  avg_latency_ms: string | null;
+}
+
+/**
+ * Traffic per upstream provider. The provider is the first path segment of the
+ * model public name (e.g. `groq/openai/gpt-oss-120b` -> `groq`).
+ */
+export async function usageByProvider(filter: ListUsageFilter): Promise<ProviderUsageRow[]> {
+  return applyUsageFilter(db("usage_events"), filter)
+    .select(db.raw("split_part(model_public_name, '/', 1) as provider"))
+    .sum("weighted_tokens as weighted_tokens")
+    .count("id as requests")
+    .select(db.raw("coalesce(avg(latency_ms),0) as avg_latency_ms"))
+    .groupByRaw("split_part(model_public_name, '/', 1)")
+    .orderByRaw("count(id) desc") as unknown as ProviderUsageRow[];
 }
 
 export interface DailyUsageRow {
   day: string;
   weighted_tokens: string;
   requests: string;
+  prompt_tokens: string;
+  completion_tokens: string;
+  cached_tokens: string;
 }
 
 export async function usageDaily(filter: ListUsageFilter): Promise<DailyUsageRow[]> {
@@ -196,8 +306,11 @@ export async function usageDaily(filter: ListUsageFilter): Promise<DailyUsageRow
     .select(db.raw("to_char(date_trunc('day', created_at), 'YYYY-MM-DD') as day"))
     .sum("weighted_tokens as weighted_tokens")
     .count("id as requests")
+    .select(db.raw("coalesce(sum(prompt_tokens),0) as prompt_tokens"))
+    .select(db.raw("coalesce(sum(completion_tokens),0) as completion_tokens"))
+    .select(db.raw("coalesce(sum(cached_tokens),0) as cached_tokens"))
     .groupByRaw("date_trunc('day', created_at)")
-    .orderByRaw("date_trunc('day', created_at) asc");
+    .orderByRaw("date_trunc('day', created_at) asc") as unknown as DailyUsageRow[];
 }
 
 export interface LatencyRow {

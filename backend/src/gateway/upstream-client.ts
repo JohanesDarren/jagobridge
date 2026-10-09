@@ -10,10 +10,16 @@ export interface UpstreamModel {
   created?: number;
   owned_by?: string;
   capabilities?: {
+    // Normalised keys (some upstreams emit these directly).
     tool_calling?: boolean;
     vision_input?: boolean;
     json_mode?: boolean;
     context_length?: number;
+    // 9router emits these native keys.
+    tools?: boolean;
+    vision?: boolean;
+    contextWindow?: number;
+    maxOutput?: number;
   };
   [key: string]: unknown;
 }

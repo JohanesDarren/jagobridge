@@ -1,5 +1,6 @@
 import type { Knex } from "knex";
 import { db } from "../db/knex.js";
+import type { OverageAction } from "../core/constants.js";
 
 export interface AccessProfileRow {
   id: string;
@@ -10,6 +11,9 @@ export interface AccessProfileRow {
   limit_weekly_tokens: string;
   limit_rpm: number;
   max_output_tokens_per_request: number;
+  price_idr: number;
+  tier_label: string | null;
+  overage_action: OverageAction;
   is_default: boolean;
   deleted_at: Date | null;
   created_at: Date;
@@ -26,6 +30,9 @@ export interface ProfileInput {
   limit_weekly_tokens: number;
   limit_rpm: number;
   max_output_tokens_per_request: number;
+  price_idr?: number;
+  tier_label?: string | null;
+  overage_action?: OverageAction;
   is_default?: boolean;
 }
 
@@ -58,6 +65,9 @@ export async function createProfile(input: ProfileInput, actorId: string): Promi
         limit_weekly_tokens: String(input.limit_weekly_tokens),
         limit_rpm: input.limit_rpm,
         max_output_tokens_per_request: input.max_output_tokens_per_request,
+        price_idr: input.price_idr ?? 0,
+        tier_label: input.tier_label ?? null,
+        overage_action: input.overage_action ?? "cutoff",
         is_default: input.is_default ?? false,
         created_by: actorId,
         updated_by: actorId,

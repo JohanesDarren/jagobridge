@@ -1,6 +1,7 @@
 export type Role = "admin" | "member";
 export type WindowState = "unlimited" | "ok" | "warning" | "exceeded";
 export type FeatureCode = "streaming" | "tool_calling" | "vision_input" | "json_mode";
+export type OverageAction = "cutoff" | "allow";
 
 export interface PaginationMeta {
   page: number;
@@ -30,6 +31,11 @@ export interface AuthUser {
   usage_notice_acknowledged: boolean;
 }
 
+export interface UserQuotaUsage {
+  five_hour: { used_tokens: number; limit_tokens: number };
+  weekly: { used_tokens: number; limit_tokens: number };
+}
+
 export interface User {
   id: string;
   name: string;
@@ -46,6 +52,8 @@ export interface User {
   last_login_at: string | null;
   created_at: string;
   updated_at: string;
+  /** Present on the list endpoint (quota bars). */
+  usage?: UserQuotaUsage;
 }
 
 export interface WindowUsage {
@@ -77,6 +85,9 @@ export interface AccessProfile {
   limit_weekly_tokens: number;
   limit_rpm: number;
   max_output_tokens_per_request: number;
+  price_idr: number;
+  tier_label: string | null;
+  overage_action: OverageAction;
   is_default: boolean;
   user_count?: number;
   model_ids?: string[];
@@ -157,11 +168,17 @@ export interface Invitation {
 export interface UsageEvent {
   id: string;
   request_id: string;
+  user_id?: string;
+  user_email?: string | null;
+  user_name?: string | null;
   model_public_name: string;
   source: "api" | "playground";
   status: "success" | "upstream_error" | "client_cancelled";
+  /** HTTP status from 9router; null when the request never got a response. */
+  upstream_status: number | null;
   prompt_tokens: number;
   completion_tokens: number;
+  cached_tokens: number;
   token_multiplier: number;
   weighted_tokens: number;
   usage_estimated: boolean;
@@ -175,8 +192,12 @@ export interface UsageStats {
     weighted_tokens: number;
     prompt_tokens: number;
     completion_tokens: number;
+    cached_tokens: number;
     requests: number;
     errors: number;
+    avg_latency_ms: number;
+    client_4xx: number;
+    server_5xx: number;
   };
   by_model: Array<{
     model_public_name: string;
@@ -185,8 +206,35 @@ export interface UsageStats {
     latency?: { p50: number | null; p95: number | null };
   }>;
   by_user: Array<{ user_id: string; weighted_tokens: number; requests: number }>;
-  daily: Array<{ day: string; weighted_tokens: number; requests: number }>;
+  by_provider: Array<{
+    provider: string;
+    requests: number;
+    weighted_tokens: number;
+    avg_latency_ms: number;
+  }>;
+  by_status_code: Array<{ upstream_status: number | null; requests: number }>;
+  daily: Array<UsageBucket & { day: string }>;
+  hourly: Array<UsageBucket & { hour: string }>;
   latency: { p50: number | null; p95: number | null };
+}
+
+export interface UsageBucket {
+  weighted_tokens: number;
+  requests: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  cached_tokens: number;
+}
+
+export interface HealthStatus {
+  status: "healthy" | "degraded" | "unhealthy";
+  version: string;
+  timestamp: string;
+  services: {
+    database: "healthy" | "unhealthy";
+    redis: "healthy" | "unhealthy";
+    upstream_9router: "healthy" | "degraded";
+  };
 }
 
 export interface Settings {

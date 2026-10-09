@@ -19,31 +19,38 @@ export function UsageNoticePage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface px-4 py-8">
-      <div className="jb-card w-full max-w-2xl p-6">
-        <h1 className="text-xl font-semibold">How JagoBridge handles your data</h1>
-        <div className="mt-4 space-y-3 text-sm text-foreground">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12">
+      <div className="jb-card w-full max-w-2xl p-8 rounded-2xl shadow-xl border border-slate-200/80">
+        <div className="flex items-center gap-3.5 mb-5 pb-5 border-b border-border">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#0b22db] to-[#040e5e] text-white shadow-md shadow-primary/20">
+            <span className="text-xl">🛡️</span>
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-slate-900">Ketentuan &amp; Tata Kelola Data JagoBridge</h1>
+            <p className="text-xs text-slate-500">Privasi, pencatatan metadata, dan transparansi alur kerja.</p>
+          </div>
+        </div>
+
+        <div className="space-y-3.5 text-sm leading-relaxed text-slate-700">
           <p>
-            JagoBridge records <strong>usage metadata</strong> for every request: the model used, token counts, the
-            source (API or playground), status, and timestamps. Usage metadata is kept for 180 days.
+            JagoBridge mencatat <strong>metadata penggunaan</strong> untuk setiap permintaan: model yang digunakan, jumlah token,
+            sumber (API atau playground), status respon, dan timestamp. Metadata disimpan selama 180 hari untuk kebutuhan audit dan performa.
           </p>
           <p>
-            Prompts and responses for API traffic are <strong>not stored</strong>. Playground chat history is stored so
-            you can return to a conversation, and you can delete it at any time. Playground history is kept for up to
-            90 days.
+            Prompt dan output respons dari traffic API <strong>tidak disimpan secara permanen</strong>. Riwayat percakapan playground
+            disimpan agar Anda dapat melanjutkan sesi kerja dan dapat Anda hapus sewaktu-waktu.
           </p>
           <p>
-            Your prompts and responses are sent to the upstream model provider (9router) to produce answers. Usage
-            limits are measured in weighted tokens and reset on a rolling basis.
+            Seluruh prompt diteruskan ke upstream model provider untuk menghasilkan respons. Kuota penggunaan dihitung berdasarkan token terbobot
+            dan diperbarui secara berkala sesuai kebijakan paket.
           </p>
-          <p className="text-muted">
-            Audit log entries about administrative actions are kept for 365 days. Sign-in events and account changes
-            are recorded for accountability.
+          <p className="text-xs text-slate-400 border-t border-slate-100 pt-3">
+            Aktivitas administratif dan riwayat autentikasi dicatat dalam Audit Log untuk memastikan tata kelola yang aman dan terstruktur.
           </p>
         </div>
-        <div className="mt-6 flex justify-end">
-          <Button onClick={acknowledge} loading={submitting}>
-            I understand and accept
+        <div className="mt-8 flex justify-end">
+          <Button onClick={acknowledge} loading={submitting} size="lg" className="px-6">
+            Saya Mengerti &amp; Lanjutkan →
           </Button>
         </div>
       </div>

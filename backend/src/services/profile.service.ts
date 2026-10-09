@@ -1,3 +1,4 @@
+import type { OverageAction } from "../core/constants.js";
 import { AppError } from "../core/errors.js";
 import {
   countUsersForProfile,
@@ -28,6 +29,9 @@ export interface ProfileDto {
   limit_weekly_tokens: number;
   limit_rpm: number;
   max_output_tokens_per_request: number;
+  price_idr: number;
+  tier_label: string | null;
+  overage_action: OverageAction;
   is_default: boolean;
   user_count?: number;
   model_ids?: string[];
@@ -47,6 +51,9 @@ export function toProfileDto(profile: AccessProfileRow): ProfileDto {
     limit_weekly_tokens: Number(profile.limit_weekly_tokens),
     limit_rpm: profile.limit_rpm,
     max_output_tokens_per_request: profile.max_output_tokens_per_request,
+    price_idr: Number(profile.price_idr ?? 0),
+    tier_label: profile.tier_label,
+    overage_action: profile.overage_action ?? "cutoff",
     is_default: profile.is_default,
     created_at: profile.created_at.toISOString(),
     updated_at: profile.updated_at.toISOString(),
@@ -92,7 +99,12 @@ export async function createProfileService(input: ProfileInput, actorId: string,
     action: "access_profile.create",
     targetType: "access_profile",
     targetId: created.id,
-    afterState: { name: created.name },
+    afterState: {
+      name: created.name,
+      price_idr: Number(created.price_idr ?? 0),
+      tier_label: created.tier_label,
+      overage_action: created.overage_action,
+    },
     ipAddress: meta.ip,
     userAgent: meta.userAgent,
   });
@@ -134,6 +146,9 @@ export async function updateProfileService(
       limit_weekly_tokens: Number(profile.limit_weekly_tokens),
       limit_rpm: profile.limit_rpm,
       max_output_tokens_per_request: profile.max_output_tokens_per_request,
+      price_idr: Number(profile.price_idr ?? 0),
+      tier_label: profile.tier_label,
+      overage_action: profile.overage_action,
       allow_all_models: profile.allow_all_models,
       is_default: profile.is_default,
     },
@@ -142,6 +157,9 @@ export async function updateProfileService(
       limit_weekly_tokens: Number(updated.limit_weekly_tokens),
       limit_rpm: updated.limit_rpm,
       max_output_tokens_per_request: updated.max_output_tokens_per_request,
+      price_idr: Number(updated.price_idr ?? 0),
+      tier_label: updated.tier_label,
+      overage_action: updated.overage_action,
       allow_all_models: updated.allow_all_models,
       is_default: updated.is_default,
     },

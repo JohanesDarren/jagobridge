@@ -11,13 +11,14 @@ import { DashboardPage } from "../pages/dashboard/DashboardPage";
 import { ModelsPage } from "../pages/models/ModelsPage";
 import { UsersPage } from "../pages/users/UsersPage";
 import { UserDetailPage } from "../pages/users/UserDetailPage";
-import { AccessProfilesPage } from "../pages/access-profiles/AccessProfilesPage";
+import { PackagesPage } from "../pages/packages/PackagesPage";
 import { FeaturesPage } from "../pages/features/FeaturesPage";
 import { UsagePage } from "../pages/usage/UsagePage";
 import { ApiKeysPage } from "../pages/api-keys/ApiKeysPage";
 import { AuditLogsPage } from "../pages/audit-logs/AuditLogsPage";
+import { ApiTesterPage } from "../pages/api-tester/ApiTesterPage";
+import { ModelTesterPage } from "../pages/model-tester/ModelTesterPage";
 import { SettingsPage } from "../pages/settings/SettingsPage";
-import { ProfilePage } from "../pages/profile/ProfilePage";
 import { NotFoundPage } from "../pages/NotFoundPage";
 
 function RequireAuth() {
@@ -54,13 +55,14 @@ export function AppRoutes() {
           <Route path="models" element={<ModelsPage />} />
           <Route path="usage" element={<UsagePage />} />
           <Route path="api-keys" element={<ApiKeysPage />} />
-          <Route path="profile" element={<ProfilePage />} />
 
           <Route element={<RequireAdmin />}>
             <Route path="users" element={<UsersPage />} />
             <Route path="users/:id" element={<UserDetailPage />} />
-            <Route path="access-profiles" element={<AccessProfilesPage />} />
+            <Route path="packages" element={<PackagesPage />} />
             <Route path="features" element={<FeaturesPage />} />
+            <Route path="api-tester" element={<ApiTesterPage />} />
+            <Route path="model-tester" element={<ModelTesterPage />} />
             <Route path="audit-logs" element={<AuditLogsPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>

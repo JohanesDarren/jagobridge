@@ -1,5 +1,9 @@
 import { AppError } from "../core/errors.js";
-import type { Role } from "../core/constants.js";
+import {
+  FIVE_HOUR_WINDOW_SECONDS,
+  WEEKLY_WINDOW_SECONDS,
+  type Role,
+} from "../core/constants.js";
 import {
   anonymizeUser,
   countActiveAdmins,
@@ -20,7 +24,13 @@ import { invalidateAccessCache, resolveEffectiveAccess } from "./access.service.
 import { getUserModelOverrides, listModels } from "../repositories/model.repository.js";
 import { canUseModel, canUseFeature } from "./access.service.js";
 import { getUserFeatureOverrides, listFeatures } from "../repositories/feature.repository.js";
+import { sumWeightedTokensByUser } from "../repositories/usage.repository.js";
 import type { RequestMeta } from "./auth.service.js";
+
+export interface UserQuotaUsage {
+  five_hour: { used_tokens: number; limit_tokens: number };
+  weekly: { used_tokens: number; limit_tokens: number };
+}
 
 export interface UserDto {
   id: string;
@@ -38,6 +48,8 @@ export interface UserDto {
   last_login_at: string | null;
   created_at: string;
   updated_at: string;
+  /** Present on the list endpoint so the console can render quota bars. */
+  usage?: UserQuotaUsage;
 }
 
 export function toUserDto(user: UserRow, profileName: string | null = null): UserDto {
@@ -72,8 +84,28 @@ export async function listUsersDto(
   pagination: { offset: number; limit: number },
 ): Promise<{ users: UserDto[]; total: number }> {
   const [{ rows, total }, names] = await Promise.all([listUsers(filter, pagination), profileNameMap()]);
+  const ids = rows.map((row) => row.id);
+
+  const [fiveHourTotals, weeklyTotals, accesses] = await Promise.all([
+    sumWeightedTokensByUser(ids, FIVE_HOUR_WINDOW_SECONDS),
+    sumWeightedTokensByUser(ids, WEEKLY_WINDOW_SECONDS),
+    Promise.all(rows.map((row) => resolveEffectiveAccess(row))),
+  ]);
+
   return {
-    users: rows.map((row) => toUserDto(row, row.access_profile_id ? names.get(row.access_profile_id) ?? null : null)),
+    users: rows.map((row, index) => ({
+      ...toUserDto(row, row.access_profile_id ? names.get(row.access_profile_id) ?? null : null),
+      usage: {
+        five_hour: {
+          used_tokens: fiveHourTotals.get(row.id) ?? 0,
+          limit_tokens: accesses[index]?.limits.limit5hTokens ?? 0,
+        },
+        weekly: {
+          used_tokens: weeklyTotals.get(row.id) ?? 0,
+          limit_tokens: accesses[index]?.limits.limitWeeklyTokens ?? 0,
+        },
+      },
+    })),
     total,
   };
 }

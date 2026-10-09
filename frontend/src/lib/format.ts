@@ -39,6 +39,28 @@ export function percent(used: number, limit: number): number {
   return Math.min(100, Math.round((used / limit) * 100));
 }
 
+/**
+ * The console presents quota in rupiah as well as tokens. Prices are listed at
+ * IDR 0.02 per weighted token (matches the seeded package catalogue).
+ */
+export const IDR_PER_TOKEN = 0.02;
+
+export function tokensToIdr(tokens: number): number {
+  return Math.round(tokens * IDR_PER_TOKEN);
+}
+
+export function formatIdr(value: number): string {
+  return `Rp ${new Intl.NumberFormat("id-ID").format(Math.round(value))}`;
+}
+
+export function formatRateLimit(rpm: number): string {
+  return rpm <= 0 ? "Unlimited" : `${rpm} req/min`;
+}
+
+export function formatPrice(idr: number): string {
+  return idr <= 0 ? "Gratis" : formatIdr(idr);
+}
+
 export function retryAfterLabel(seconds: number): string {
   if (seconds < 60) return `${seconds} seconds`;
   const minutes = Math.ceil(seconds / 60);

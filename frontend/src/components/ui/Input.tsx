@@ -18,8 +18,39 @@ export function FieldError({ messages }: { messages?: string[] }) {
   );
 }
 
-export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
-  function Input({ className, ...props }, ref) {
+export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+  leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
+}
+
+export const Input = forwardRef<HTMLInputElement, InputProps>(
+  function Input({ className, leftIcon, rightIcon, ...props }, ref) {
+    if (leftIcon || rightIcon) {
+      return (
+        <div className="relative flex items-center w-full">
+          {leftIcon ? (
+            <div className="pointer-events-none absolute left-3.5 flex items-center text-slate-400">
+              {leftIcon}
+            </div>
+          ) : null}
+          <input
+            ref={ref}
+            className={cn(
+              "jb-input",
+              leftIcon && "pl-10",
+              rightIcon && "pr-10",
+              className,
+            )}
+            {...props}
+          />
+          {rightIcon ? (
+            <div className="absolute right-3.5 flex items-center">
+              {rightIcon}
+            </div>
+          ) : null}
+        </div>
+      );
+    }
     return <input ref={ref} className={cn("jb-input", className)} {...props} />;
   },
 );

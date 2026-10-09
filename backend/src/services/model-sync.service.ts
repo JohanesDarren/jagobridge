@@ -19,21 +19,25 @@ export interface SyncResult {
   synced_at: string;
 }
 
+/**
+ * Normalises upstream capability flags. 9router reports `tools`/`vision`/
+ * `contextWindow`, while the catalog stores `tool_calling`/`vision_input`/
+ * `context_length`; either form is accepted (PRD F-05).
+ */
 function extractCapabilities(model: UpstreamModel): ModelCapabilities {
   const capabilities: ModelCapabilities = {};
-  if (model.capabilities) {
-    if (typeof model.capabilities.tool_calling === "boolean") {
-      capabilities.tool_calling = model.capabilities.tool_calling;
-    }
-    if (typeof model.capabilities.vision_input === "boolean") {
-      capabilities.vision_input = model.capabilities.vision_input;
-    }
-    if (typeof model.capabilities.json_mode === "boolean") {
-      capabilities.json_mode = model.capabilities.json_mode;
-    }
-    if (typeof model.capabilities.context_length === "number") {
-      capabilities.context_length = model.capabilities.context_length;
-    }
+  const upstream = model.capabilities;
+  if (upstream) {
+    const toolCalling = upstream.tool_calling ?? upstream.tools;
+    if (typeof toolCalling === "boolean") capabilities.tool_calling = toolCalling;
+
+    const visionInput = upstream.vision_input ?? upstream.vision;
+    if (typeof visionInput === "boolean") capabilities.vision_input = visionInput;
+
+    if (typeof upstream.json_mode === "boolean") capabilities.json_mode = upstream.json_mode;
+
+    const contextLength = upstream.context_length ?? upstream.contextWindow;
+    if (typeof contextLength === "number") capabilities.context_length = contextLength;
   }
   return capabilities;
 }
