@@ -221,14 +221,6 @@ export async function sendChatCompletion(options: {
   return result;
 }
 
-/** Best-effort assistant text from a buffered chat completion response. */
-export function extractAssistantText(responseBody: unknown): string | null {
-  if (!responseBody || typeof responseBody !== "object") return null;
-  const choices = (responseBody as { choices?: Array<{ message?: { content?: unknown } }> }).choices;
-  const content = choices?.[0]?.message?.content;
-  return typeof content === "string" ? content : null;
-}
-
 export function prettyJson(value: unknown): string {
   if (value === null || value === undefined) return "—";
   try {
@@ -246,25 +238,4 @@ export function toCurl(apiKey: string, body: unknown): string {
     `  -H "Content-Type: application/json" \\`,
     `  -d '${JSON.stringify(body)}'`,
   ].join("\n");
-}
-
-/** Runs an async worker over items with a bounded concurrency. */
-export async function runPool<T>(
-  items: T[],
-  limit: number,
-  worker: (item: T, index: number) => Promise<void>,
-  shouldStop?: () => boolean,
-): Promise<void> {
-  let cursor = 0;
-  const size = Math.max(1, Math.min(limit, items.length));
-  const runners = Array.from({ length: size }, async () => {
-    for (;;) {
-      if (shouldStop?.()) return;
-      const index = cursor;
-      cursor += 1;
-      if (index >= items.length) return;
-      await worker(items[index] as T, index);
-    }
-  });
-  await Promise.all(runners);
 }

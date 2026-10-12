@@ -17,7 +17,6 @@ import { UsagePage } from "../pages/usage/UsagePage";
 import { ApiKeysPage } from "../pages/api-keys/ApiKeysPage";
 import { AuditLogsPage } from "../pages/audit-logs/AuditLogsPage";
 import { ApiTesterPage } from "../pages/api-tester/ApiTesterPage";
-import { ModelTesterPage } from "../pages/model-tester/ModelTesterPage";
 import { SettingsPage } from "../pages/settings/SettingsPage";
 import { NotFoundPage } from "../pages/NotFoundPage";
 
@@ -62,7 +61,6 @@ export function AppRoutes() {
             <Route path="packages" element={<PackagesPage />} />
             <Route path="features" element={<FeaturesPage />} />
             <Route path="api-tester" element={<ApiTesterPage />} />
-            <Route path="model-tester" element={<ModelTesterPage />} />
             <Route path="audit-logs" element={<AuditLogsPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
