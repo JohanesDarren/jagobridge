@@ -23,7 +23,7 @@ import type {
 
 // ------------------------------------------------------------------ health
 /**
- * Public /health probe: database, Redis and the 9router upstream. Polled while
+ * Public /health probe: database and the 9router upstream. Polled while
  * the dashboard's live monitoring toggle is on.
  */
 export function useHealth(refetchIntervalMs = 0) {

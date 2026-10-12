@@ -39,9 +39,6 @@ const envSchema = z.object({
   PGPOOL_MIN: z.coerce.number().int().min(0).default(2),
   PGPOOL_MAX: z.coerce.number().int().min(1).default(10),
 
-  // Redis
-  REDIS_URL: z.string().default("redis://localhost:6379/0"),
-
   // JWT / Auth
   JWT_SECRET_KEY: z.string().min(32, "JWT_SECRET_KEY must be at least 32 characters"),
   JWT_ALGORITHM: z.string().default("HS256"),

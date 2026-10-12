@@ -232,7 +232,6 @@ export interface HealthStatus {
   timestamp: string;
   services: {
     database: "healthy" | "unhealthy";
-    redis: "healthy" | "unhealthy";
     upstream_9router: "healthy" | "degraded";
   };
 }

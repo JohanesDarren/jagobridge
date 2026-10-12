@@ -2,7 +2,6 @@ import { createApp } from "./app.js";
 import { loadEnv } from "./core/env.js";
 import { logger } from "./core/logger.js";
 import { closeDatabase } from "./db/knex.js";
-import { closeRedis } from "./db/redis.js";
 import { startRetentionJob, stopRetentionJob } from "./jobs/retention.js";
 import { startScheduler, stopScheduler } from "./jobs/scheduler.js";
 
@@ -25,7 +24,6 @@ async function shutdown(signal: string): Promise<void> {
   stopRetentionJob();
   server.close(async () => {
     await closeDatabase().catch(() => undefined);
-    await closeRedis().catch(() => undefined);
     logger.info("shutdown_complete");
     process.exit(0);
   });

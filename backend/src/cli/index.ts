@@ -2,7 +2,6 @@ import { createAdminCommand, type CreateAdminArgs } from "./create-admin.js";
 import { syncModels } from "../services/model-sync.service.js";
 import { runRetention } from "../jobs/retention.js";
 import { closeDatabase } from "../db/knex.js";
-import { closeRedis } from "../db/redis.js";
 
 function parseFlags(argv: string[]): Record<string, string> {
   const flags: Record<string, string> = {};
@@ -67,12 +66,10 @@ async function main(): Promise<void> {
 main()
   .then(async () => {
     await closeDatabase();
-    await closeRedis();
     process.exit(0);
   })
   .catch(async (error: unknown) => {
     process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
     await closeDatabase().catch(() => undefined);
-    await closeRedis().catch(() => undefined);
     process.exit(1);
   });

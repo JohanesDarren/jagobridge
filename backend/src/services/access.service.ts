@@ -1,4 +1,3 @@
-import { redis } from "../db/redis.js";
 import type { FeatureCode, OverageAction, OverrideEffect, Role } from "../core/constants.js";
 import type { UserRow } from "../repositories/user.repository.js";
 import type { ModelRow } from "../repositories/model.repository.js";
@@ -33,23 +32,49 @@ export interface EffectiveAccess {
   limits: EffectiveLimits;
 }
 
-const ACCESS_CACHE_TTL_SECONDS = 60;
+const ACCESS_CACHE_TTL_MS = 60 * 1000;
 const accessCacheKey = (userId: string) => `access:user:${userId}`;
+
+/**
+ * In-process TTL cache for resolved access. Postgres remains the source of
+ * truth; this only avoids re-resolving on every gateway request.
+ *
+ * NOTE: per-instance. Invalidations only clear the cache of the process that
+ * made the change, so other instances may serve a stale entry for up to the
+ * TTL (60s). Acceptable for the single-instance deployment in PRD §2.3.
+ */
+interface CacheEntry {
+  value: EffectiveAccess;
+  expiresAt: number;
+}
+
+const accessCache = new Map<string, CacheEntry>();
+
+function readAccessCache(userId: string): EffectiveAccess | null {
+  const entry = accessCache.get(accessCacheKey(userId));
+  if (!entry) return null;
+  if (entry.expiresAt <= Date.now()) {
+    accessCache.delete(accessCacheKey(userId));
+    return null;
+  }
+  return entry.value;
+}
+
+function writeAccessCache(userId: string, access: EffectiveAccess): void {
+  accessCache.set(accessCacheKey(userId), {
+    value: access,
+    expiresAt: Date.now() + ACCESS_CACHE_TTL_MS,
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Effective access resolution
 // ---------------------------------------------------------------------------
 
-/** Resolves the effective access of a user, using a short-lived Redis cache. */
+/** Resolves the effective access of a user, using a short-lived in-process cache. */
 export async function resolveEffectiveAccess(user: UserRow): Promise<EffectiveAccess> {
-  const cached = await redis.get(accessCacheKey(user.id));
-  if (cached) {
-    try {
-      return JSON.parse(cached) as EffectiveAccess;
-    } catch {
-      // fall through to recompute on corrupt cache
-    }
-  }
+  const cached = readAccessCache(user.id);
+  if (cached) return cached;
 
   const profile = user.access_profile_id ? await findProfileById(user.access_profile_id) : undefined;
   const [profileModelIds, profileFeatureIds, features, modelOverrides, featureOverrides] =
@@ -105,7 +130,7 @@ export async function resolveEffectiveAccess(user: UserRow): Promise<EffectiveAc
     },
   };
 
-  await redis.set(accessCacheKey(user.id), JSON.stringify(access), "EX", ACCESS_CACHE_TTL_SECONDS);
+  writeAccessCache(user.id, access);
   return access;
 }
 
@@ -166,7 +191,7 @@ function truthyOrUnknown(value: boolean | undefined): boolean {
 // ---------------------------------------------------------------------------
 
 export async function invalidateAccessCache(userId: string): Promise<void> {
-  await redis.del(accessCacheKey(userId));
+  accessCache.delete(accessCacheKey(userId));
 }
 
 export async function invalidateAccessCacheForProfile(profileId: string): Promise<void> {
@@ -175,14 +200,14 @@ export async function invalidateAccessCacheForProfile(profileId: string): Promis
     .whereNull("deleted_at")
     .select<{ id: string }[]>("id");
   if (users.length === 0) return;
-  await redis.del(...users.map((user) => accessCacheKey(user.id)));
+  for (const user of users) accessCache.delete(accessCacheKey(user.id));
 }
 
 export async function invalidateAllAccessCaches(): Promise<void> {
-  let cursor = "0";
-  do {
-    const [nextCursor, keys] = await redis.scan(cursor, "MATCH", "access:user:*", "COUNT", 200);
-    cursor = nextCursor;
-    if (keys.length > 0) await redis.del(...keys);
-  } while (cursor !== "0");
+  accessCache.clear();
+}
+
+/** Test helper: clears the whole access cache. */
+export function resetAccessCache(): void {
+  accessCache.clear();
 }

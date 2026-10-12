@@ -38,7 +38,7 @@ JagoBridge/
 │       ├── hooks/                # auth, toasts, TanStack Query resource hooks
 │       ├── lib/                  # api-client, formatting, permissions
 │       └── types/                # API types mirroring the backend contract
-├── deploy/                       # docker-compose (Postgres + Redis), nginx, backup
+├── deploy/                       # docker-compose (Postgres), nginx, backup
 ├── docs/                         # API and architecture notes
 └── .github/workflows/            # CI
 ```
@@ -53,7 +53,7 @@ separate route groups. Access, feature, and limit checks live in exactly one pla
 ## Prerequisites
 
 - Node.js 20+ (developed on Node 24)
-- Docker (for PostgreSQL and Redis)
+- Docker (for PostgreSQL)
 
 ## Setup
 
@@ -64,14 +64,14 @@ npm install
 npm run install:all
 ```
 
-### 2. Start PostgreSQL and Redis
+### 2. Start PostgreSQL
 
 ```bash
 npm run infra:up
 ```
 
-This starts Postgres on **port 5440** and Redis on **port 6380** (chosen to avoid clashing with
-other local services). Connection details live in `deploy/docker-compose.yml`.
+This starts Postgres on **port 5440** (chosen to avoid clashing with other local services).
+Connection details live in `deploy/docker-compose.yml`.
 
 ### 3. Configure the backend
 
@@ -151,7 +151,7 @@ OpenAI error shape with an `error.code` (for example `USAGE_LIMIT_5H_EXCEEDED`) 
 | Command | Action |
 | :--- | :--- |
 | `npm run dev` | Run backend and frontend together |
-| `npm run infra:up` / `infra:down` | Start / stop Postgres + Redis |
+| `npm run infra:up` / `infra:down` | Start / stop Postgres |
 | `npm run migrate:latest` / `migrate:rollback` | Apply / roll back migrations |
 | `npm run seed:run` | Seed features, profiles, settings |
 | `npm run typecheck` | Typecheck backend and frontend |

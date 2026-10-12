@@ -9,7 +9,7 @@ See `README.md` for setup. This file records the decisions that are easy to get 
 - **AI gateway** `/v1/*` — `Authorization: Bearer jb_...` API keys, OpenAI-compatible request and
   response bodies, OpenAI error shape with `error.code`.
 
-They share the same Express app, database, and Redis but have separate middleware chains.
+They share the same Express app and database but have separate middleware chains.
 
 ## Single gateway pipeline
 
@@ -21,7 +21,7 @@ and (later) the playground call it. No route re-implements these checks. Order:
 3. Model resolution (`public_name` → row)
 4. Model access (user override → profile → default deny)
 5. Feature entitlement and model capability
-6. RPM and concurrency (Redis)
+6. RPM and concurrency (in-process)
 7. Usage admission (rolling 5-hour and weekly windows)
 8. Forward to 9router (`stream_options.include_usage = true` when streaming)
 9. Record usage with the model's multiplier snapshotted
@@ -48,9 +48,18 @@ first until usage drops below the limit (`usage.service.ts`).
 
 ## Caching and invalidation
 
-Effective access is cached in Redis under `access:user:<id>` with a 60-second TTL, which bounds
-how long a stale rule can live. Profile edits, model edits, feature toggles, user edits, and
-syncs invalidate the affected keys (or all keys) immediately.
+Effective access is cached in process memory under `access:user:<id>` with a 60-second TTL, which
+bounds how long a stale rule can live. Profile edits, model edits, feature toggles, user edits, and
+syncs invalidate the affected entries (or all entries) immediately.
+
+## In-process state (no Redis)
+
+RPM windows, the in-flight concurrency counter, and the access cache all live in process memory
+(`rate-limit.service.ts`, `access.service.ts`). Postgres is the only source of truth; nothing in
+memory is required to reconstruct state. This is correct for the single-instance deployment in
+PRD §2.3. **If JagoBridge is ever scaled to multiple instances**, these counters must move to a
+shared store (e.g. Redis) — otherwise each instance enforces its own copy of the limit, and cache
+invalidations only clear the instance that made the change (others stay stale for up to the 60s TTL).
 
 ## Security
 

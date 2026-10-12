@@ -195,7 +195,6 @@ export function DashboardPage() {
               <ServiceRow label="Chat AI" status={services?.upstream_9router ?? null} />
               <ServiceRow label="Models AI" status={services?.upstream_9router ?? null} />
               <ServiceRow label="PostgreSQL" status={services?.database ?? null} />
-              <ServiceRow label="Redis" status={services?.redis ?? null} />
             </div>
           </div>
         </CardBody>
@@ -237,18 +236,12 @@ export function DashboardPage() {
       </div>
 
       {/* ------------------------------------------------------ service health */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         <ServiceHealthCard
           name="PostgreSQL"
           detail="Primary datastore"
           status={services?.database ?? null}
           icon={<Database className="h-5 w-5" />}
-        />
-        <ServiceHealthCard
-          name="Redis"
-          detail="Rate limit &amp; access cache"
-          status={services?.redis ?? null}
-          icon={<Server className="h-5 w-5" />}
         />
         <ServiceHealthCard
           name="9router upstream"
