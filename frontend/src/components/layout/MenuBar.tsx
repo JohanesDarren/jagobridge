@@ -77,7 +77,7 @@ export function MenuBar() {
       "rounded-lg px-3 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors",
       isActive
         ? "bg-primary/10 text-primary"
-        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+        : "text-slate-600 hover:bg-sky-100 hover:text-primary",
     );
 
   return (
@@ -88,7 +88,7 @@ export function MenuBar() {
           <button
             type="button"
             onClick={() => navigate("/")}
-            className="flex shrink-0 items-center rounded-lg p-1 transition-colors hover:bg-slate-100"
+            className="flex shrink-0 items-center rounded-lg p-1 transition-colors hover:bg-sky-100"
             aria-label="JagoBridge home"
           >
             <Logo className="h-7 w-7" />
@@ -106,7 +106,7 @@ export function MenuBar() {
           {/* Mobile toggle */}
           <button
             type="button"
-            className="ml-auto flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 lg:hidden"
+            className="ml-auto flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 hover:bg-sky-100 lg:hidden"
             onClick={() => setMobileOpen((open) => !open)}
             aria-label={mobileOpen ? "Close menu" : "Open menu"}
             aria-expanded={mobileOpen}
@@ -122,8 +122,8 @@ export function MenuBar() {
               aria-haspopup="menu"
               aria-expanded={accountOpen}
               className={cn(
-                "flex items-center gap-2 rounded-lg py-1 pl-1 pr-2 transition-colors hover:bg-slate-100",
-                accountOpen && "bg-slate-100",
+                "flex items-center gap-2 rounded-lg py-1 pl-1 pr-2 transition-colors hover:bg-sky-100",
+                accountOpen && "bg-sky-100",
               )}
             >
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-[11px] font-bold uppercase text-white">
@@ -156,7 +156,7 @@ export function MenuBar() {
                     setAccountOpen(false);
                     navigate("/change-password");
                   }}
-                  className="block w-full px-3 py-2 text-left text-[13px] text-slate-700 transition-colors hover:bg-slate-100"
+                  className="block w-full px-3 py-2 text-left text-[13px] text-slate-700 transition-colors hover:bg-sky-100"
                 >
                   Change password
                 </button>
@@ -167,7 +167,7 @@ export function MenuBar() {
                     setAccountOpen(false);
                     setAboutOpen(true);
                   }}
-                  className="block w-full px-3 py-2 text-left text-[13px] text-slate-700 transition-colors hover:bg-slate-100"
+                  className="block w-full px-3 py-2 text-left text-[13px] text-slate-700 transition-colors hover:bg-sky-100"
                 >
                   About JagoBridge
                 </button>
@@ -200,7 +200,7 @@ export function MenuBar() {
                       "rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                       isActive
                         ? "bg-primary/10 text-primary"
-                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+                        : "text-slate-600 hover:bg-sky-100 hover:text-primary",
                     )
                   }
                 >
