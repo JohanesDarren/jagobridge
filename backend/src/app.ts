@@ -1,6 +1,7 @@
 import express, { type Express } from "express";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
@@ -64,12 +65,21 @@ export function createApp(): Express {
   // back to index.html. API 404s must stay JSON, so the fallback is registered
   // only for non-API paths.
   if (env.SERVE_FRONTEND) {
-    const distDir = path.resolve(process.cwd(), env.FRONTEND_DIST_DIR);
-    const indexHtml = path.join(distDir, "index.html");
+    // Resolve from cwd first (platform start commands run at the repo root),
+    // then fall back to the module location so the server also works when it is
+    // launched from inside backend/.
+    const candidates = [
+      path.resolve(process.cwd(), env.FRONTEND_DIST_DIR),
+      path.resolve(process.cwd(), "..", env.FRONTEND_DIST_DIR),
+      path.resolve(fileURLToPath(import.meta.url), "..", "..", "..", "..", env.FRONTEND_DIST_DIR),
+    ];
+    const distDir = candidates.find((dir) => fs.existsSync(path.join(dir, "index.html")));
+    const indexHtml = distDir ? path.join(distDir, "index.html") : null;
 
-    if (!fs.existsSync(indexHtml)) {
-      logger.warn({ distDir }, "frontend_dist_missing_spa_serving_disabled");
+    if (!indexHtml || !distDir) {
+      logger.warn({ candidates }, "frontend_dist_missing_spa_serving_disabled");
     } else {
+      logger.info({ distDir }, "spa_serving_enabled");
       app.use(express.static(distDir, { index: false }));
       app.get(/^\/(?!api\/|v1\/|health$).*/, (_req, res) => {
         res.sendFile(indexHtml);
