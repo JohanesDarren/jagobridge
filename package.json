@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "JagoBridge — internal LLM access control and OpenAI-compatible AI gateway",
   "private": true,
+  "main": "backend/dist/src/server.js",
   "scripts": {
     "dev": "concurrently -n backend,frontend -c blue,magenta \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "npm --prefix backend run dev",
