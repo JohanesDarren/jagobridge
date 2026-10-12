@@ -6,7 +6,7 @@ const env = loadEnv();
 const connection = env.DATABASE_URL
   ? {
       connectionString: env.DATABASE_URL,
-      ssl: env.APP_ENV === "production" ? { rejectUnauthorized: false } : false,
+      ssl: env.PGSSL ? { rejectUnauthorized: false } : false,
     }
   : {
       host: env.PGHOST,
@@ -14,6 +14,7 @@ const connection = env.DATABASE_URL
       user: env.PGUSER,
       password: env.PGPASSWORD,
       database: env.PGDATABASE,
+      ...(env.PGSSL ? { ssl: { rejectUnauthorized: false } } : {}),
     };
 
 export const db: Knex = knex({

@@ -42,6 +42,10 @@ const envSchema = z.object({
   PGPORT: z.coerce.number().int().positive().default(5432),
   PGPOOL_MIN: z.coerce.number().int().min(0).default(2),
   PGPOOL_MAX: z.coerce.number().int().min(1).default(10),
+  // Managed Postgres often terminates TLS, but self-hosted/private-network
+  // instances frequently have it disabled (e.g. sslmode=disable). Default to
+  // off and let the deployment opt in, instead of forcing TLS in production.
+  PGSSL: booleanFromEnv(false),
 
   // JWT / Auth
   JWT_SECRET_KEY: z.string().min(32, "JWT_SECRET_KEY must be at least 32 characters"),

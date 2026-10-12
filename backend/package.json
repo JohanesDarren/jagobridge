@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "node dist/src/server.js",
+    "start:bootstrap": "node dist/src/cli/index.js bootstrap",
     "build": "tsc -p tsconfig.json",
     "lint": "eslint src tests",
     "format": "prettier --write src tests",
