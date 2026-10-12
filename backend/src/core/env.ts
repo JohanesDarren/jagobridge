@@ -32,6 +32,9 @@ const envSchema = z.object({
   // Static frontend hosting (single-process deploy: Node serves the built SPA).
   SERVE_FRONTEND: booleanFromEnv(false),
   FRONTEND_DIST_DIR: z.string().default("frontend/dist"),
+  // Run migrations + seeds at boot. Useful on platforms whose runtime shell
+  // cannot invoke node directly (no CLI access to the compiled binary).
+  RUN_MIGRATIONS_ON_START: booleanFromEnv(false),
 
   // Database
   DATABASE_URL: z.string().optional(),

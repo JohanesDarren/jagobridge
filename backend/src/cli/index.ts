@@ -1,37 +1,8 @@
-import { fileURLToPath } from "node:url";
-import path from "node:path";
 import { createAdminCommand, type CreateAdminArgs } from "./create-admin.js";
 import { syncModels } from "../services/model-sync.service.js";
 import { runRetention } from "../jobs/retention.js";
-import { closeDatabase, db } from "../db/knex.js";
-
-const HERE = path.dirname(fileURLToPath(import.meta.url));
-const MIGRATIONS_DIR = path.join(HERE, "..", "db", "migrations");
-const SEEDS_DIR = path.join(HERE, "..", "db", "seeds");
-
-/**
- * Run migrations/seeds from the compiled output. The package.json knex scripts
- * shell out to `tsx ... knexfile.ts`, which only works where devDependencies are
- * installed; a production deploy installs prod deps only, so this path uses the
- * already-compiled .js files instead.
- */
-async function runMigrations(): Promise<void> {
-  const [batch, applied] = await db.migrate.latest({
-    directory: MIGRATIONS_DIR,
-    extension: "js",
-    loadExtensions: [".js"],
-  });
-  process.stdout.write(`migrations: batch ${batch}, applied ${applied.length}\n`);
-}
-
-async function runSeeds(): Promise<void> {
-  const [applied] = await db.seed.run({
-    directory: SEEDS_DIR,
-    extension: "js",
-    loadExtensions: [".js"],
-  });
-  process.stdout.write(`seeds: applied ${applied.length}\n`);
-}
+import { closeDatabase } from "../db/knex.js";
+import { bootstrapDatabase, runMigrations, runSeeds } from "../db/bootstrap.js";
 
 function parseFlags(argv: string[]): Record<string, string> {
   const flags: Record<string, string> = {};
@@ -71,16 +42,18 @@ async function main(): Promise<void> {
       break;
     }
     case "migrate": {
-      await runMigrations();
+      const applied = await runMigrations();
+      process.stdout.write(`migrations: applied ${applied}\n`);
       break;
     }
     case "seed": {
-      await runSeeds();
+      const applied = await runSeeds();
+      process.stdout.write(`seeds: applied ${applied}\n`);
       break;
     }
     case "bootstrap": {
-      await runMigrations();
-      await runSeeds();
+      await bootstrapDatabase();
+      process.stdout.write("bootstrap: migrations + seeds complete\n");
       break;
     }
     case "retention": {
