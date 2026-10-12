@@ -85,7 +85,6 @@ const envSchema = z.object({
   SMTP_FROM: z.string().default("JagoBridge <no-reply@team.example>"),
 
   // Monitoring
-  SENTRY_DSN: z.string().default(""),
   LOG_LEVEL: z.enum(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]).default("INFO"),
 });
 
