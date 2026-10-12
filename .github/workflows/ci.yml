@@ -27,7 +27,8 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # Node 20 is deprecated on GitHub runners (actions are forced onto 24).
+          node-version: "22"
           cache: npm
           cache-dependency-path: |
             package-lock.json

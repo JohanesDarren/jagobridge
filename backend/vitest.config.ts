@@ -5,6 +5,9 @@ export default defineConfig({
     environment: "node",
     globals: true,
     include: ["tests/**/*.test.ts"],
+    // Hermetic env for modules that transitively call loadEnv(). Without this
+    // the suite only passed where a developer's backend/.env happened to exist.
+    setupFiles: ["tests/setup.ts"],
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov"],
