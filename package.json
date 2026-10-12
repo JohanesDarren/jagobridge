@@ -5,7 +5,8 @@
   "private": true,
   "main": "backend/dist/src/server.js",
   "scripts": {
-    "dev": "concurrently -n backend,frontend -c blue,magenta \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev": "node scripts/dev.mjs",
+    "dev:local": "concurrently -n backend,frontend -c blue,magenta \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "npm --prefix backend run dev",
     "dev:frontend": "npm --prefix frontend run dev",
     "dev:kill": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/kill-dev.ps1",
