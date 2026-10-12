@@ -29,6 +29,10 @@ const envSchema = z.object({
   // Server
   PORT: z.coerce.number().int().positive().default(5000),
 
+  // Static frontend hosting (single-process deploy: Node serves the built SPA).
+  SERVE_FRONTEND: booleanFromEnv(false),
+  FRONTEND_DIST_DIR: z.string().default("frontend/dist"),
+
   // Database
   DATABASE_URL: z.string().optional(),
   PGUSER: z.string().default("jago"),

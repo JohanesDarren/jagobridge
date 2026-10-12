@@ -52,12 +52,12 @@ const config: { [key: string]: Knex.Config } = {
     connection,
     pool: { min: env.PGPOOL_MIN, max: env.PGPOOL_MAX },
     migrations: {
-      directory: "./dist/db/migrations",
+      directory: "./dist/src/db/migrations",
       extension: "js",
       loadExtensions: [".js"],
     },
     seeds: {
-      directory: "./dist/db/seeds",
+      directory: "./dist/src/db/seeds",
       extension: "js",
       loadExtensions: [".js"],
     },

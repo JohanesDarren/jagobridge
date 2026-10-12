@@ -4,10 +4,10 @@
   "description": "JagoBridge API and AI gateway",
   "private": true,
   "type": "module",
-  "main": "dist/server.js",
+  "main": "dist/src/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "start": "node dist/server.js",
+    "start": "node dist/src/server.js",
     "build": "tsc -p tsconfig.json",
     "lint": "eslint src tests",
     "format": "prettier --write src tests",

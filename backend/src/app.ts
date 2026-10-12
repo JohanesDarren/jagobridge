@@ -1,4 +1,6 @@
 import express, { type Express } from "express";
+import fs from "node:fs";
+import path from "node:path";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
@@ -57,6 +59,23 @@ export function createApp(): Express {
 
   // OpenAI-compatible AI gateway.
   app.use("/v1", gatewayRouter);
+
+  // Single-process deploy: serve the built SPA and let client-side routes fall
+  // back to index.html. API 404s must stay JSON, so the fallback is registered
+  // only for non-API paths.
+  if (env.SERVE_FRONTEND) {
+    const distDir = path.resolve(process.cwd(), env.FRONTEND_DIST_DIR);
+    const indexHtml = path.join(distDir, "index.html");
+
+    if (!fs.existsSync(indexHtml)) {
+      logger.warn({ distDir }, "frontend_dist_missing_spa_serving_disabled");
+    } else {
+      app.use(express.static(distDir, { index: false }));
+      app.get(/^\/(?!api\/|v1\/|health$).*/, (_req, res) => {
+        res.sendFile(indexHtml);
+      });
+    }
+  }
 
   app.use(notFoundHandler);
   app.use(errorHandler);
