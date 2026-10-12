@@ -1,10 +1,11 @@
 import { useState, type FormEvent } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { AtSign, Eye, EyeOff, Lock, Sparkles } from "lucide-react";
+import { AtSign, Eye, EyeOff, Lock } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { ApiError } from "../../lib/api-client";
 import { Button } from "../../components/ui/Button";
 import { FieldError, Input, Label } from "../../components/ui/Input";
+import { Logo } from "../../components/ui/Logo";
 
 export function LoginPage() {
   const { status, user, login } = useAuth();
@@ -41,7 +42,7 @@ export function LoginPage() {
   };
 
   const fieldClass =
-    "h-11 border-slate-200 bg-white text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary";
+    "h-[52px] border-slate-200 bg-white text-base text-slate-900 placeholder:text-slate-400 focus:border-primary";
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-white font-sans">
@@ -83,30 +84,32 @@ export function LoginPage() {
 
       {/* ----------------------------------------------------------- CONTENT */}
       <div className="relative z-10 grid min-h-screen w-full lg:grid-cols-[62%_38%]">
-        {/* Brand */}
+        {/* Brand + welcome */}
         <div className="flex min-h-[340px] items-center justify-center px-8 pb-10 pt-16 lg:min-h-full lg:justify-start lg:py-0 lg:pl-20">
-          <div className="flex flex-col items-center gap-4 text-center lg:items-start lg:text-left">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#3b82f6] to-[#2563eb] shadow-lg shadow-blue-500/25">
-              <Sparkles className="h-6 w-6 text-white" />
-            </div>
+          <div className="flex max-w-lg flex-col items-center gap-6 text-center lg:items-start lg:text-left">
+            <Logo className="h-16 w-16 drop-shadow-sm" />
+
             <div>
-              <div className="flex items-center justify-center gap-1.5 lg:justify-start">
-                <span className="text-xl font-bold tracking-tight text-slate-900">JagoBridge</span>
-                <span className="rounded bg-blue-600/10 px-1.5 py-0.5 text-[10px] font-bold uppercase text-blue-700">
-                  Pro
-                </span>
-              </div>
-              <p className="mt-1 text-sm text-slate-600">Enterprise AI Gateway</p>
+              <h1 className="text-3xl font-bold tracking-tight text-slate-900">JagoBridge</h1>
+              <p className="mt-1 text-sm font-medium text-slate-600">Enterprise AI Gateway</p>
+            </div>
+
+            <div>
+              <p className="text-2xl font-semibold tracking-tight text-slate-900">Welcome back</p>
+              <p className="mt-2 text-base leading-relaxed text-slate-600">
+                Sign in to manage your models, monitor usage, and keep your team&apos;s AI access
+                secure — all from one place.
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Simple form */}
+        {/* Sign-in form */}
         <div className="flex items-center justify-center px-6 py-16 lg:py-0">
-          <div className="w-full max-w-[340px]">
-            <h2 className="mb-6 text-2xl font-bold tracking-tight text-slate-900">Masuk</h2>
+          <div className="w-full max-w-[440px]">
+            <h2 className="mb-7 text-3xl font-bold tracking-tight text-slate-900">Masuk</h2>
 
-            <form onSubmit={onSubmit} className="space-y-5">
+            <form onSubmit={onSubmit} className="space-y-6">
               <div>
                 <Label htmlFor="email">EMAIL</Label>
                 <Input
@@ -117,7 +120,7 @@ export function LoginPage() {
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                   placeholder="nama@perusahaan.com"
-                  leftIcon={<AtSign className="h-4 w-4" />}
+                  leftIcon={<AtSign className="h-5 w-5" />}
                   className={fieldClass}
                 />
                 <FieldError messages={fieldErrors.email} />
@@ -133,7 +136,7 @@ export function LoginPage() {
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   placeholder="••••••••"
-                  leftIcon={<Lock className="h-4 w-4" />}
+                  leftIcon={<Lock className="h-5 w-5" />}
                   rightIcon={
                     <button
                       type="button"
@@ -142,7 +145,7 @@ export function LoginPage() {
                       className="p-1 text-slate-400 transition-colors hover:text-slate-600"
                       aria-label={showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
                     >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
                   }
                   className={fieldClass}
@@ -160,7 +163,7 @@ export function LoginPage() {
                 type="submit"
                 size="lg"
                 loading={submitting}
-                className="h-11 w-full rounded-xl bg-primary text-sm font-semibold text-white shadow-brand hover:bg-primary-hover"
+                className="h-[52px] w-full rounded-xl bg-primary text-base font-semibold text-white shadow-brand hover:bg-primary-hover"
               >
                 Masuk
               </Button>
