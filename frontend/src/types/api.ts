@@ -130,6 +130,14 @@ export interface SyncResult {
   synced_at: string;
 }
 
+export interface ModelTestResult {
+  usable: boolean;
+  upstream_status: number;
+  latency_ms: number;
+  message: string;
+  sample: string | null;
+}
+
 export interface Feature {
   id: string;
   code: FeatureCode;

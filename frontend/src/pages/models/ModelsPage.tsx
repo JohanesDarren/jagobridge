@@ -1,8 +1,12 @@
 import { useMemo, useState } from "react";
 import {
   Check,
+  CircleCheck,
+  CircleX,
   Copy,
   Cpu,
+  FlaskConical,
+  Loader2,
   Pencil,
   Power,
   RefreshCw,
@@ -17,6 +21,7 @@ import {
   useModelCatalog,
   useSettings,
   useSyncModels,
+  useTestModel,
   useUpdateModel,
 } from "../../hooks/resources";
 import { isAdmin } from "../../lib/permissions";
@@ -24,7 +29,7 @@ import { formatDateTime } from "../../lib/format";
 import { ApiError } from "../../lib/api-client";
 import { useToast } from "../../hooks/useToast";
 import { cn } from "../../lib/utils";
-import type { Model } from "../../types/api";
+import type { Model, ModelTestResult } from "../../types/api";
 import { Button } from "../../components/ui/Button";
 import { Badge } from "../../components/ui/Badge";
 import { Card, CardBody, CardHeader } from "../../components/ui/Card";
@@ -81,12 +86,16 @@ export function ModelsPage() {
   const [multiplier, setMultiplier] = useState("1.00");
   const [enabled, setEnabled] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  /** Per-model probe results, keyed by model id. */
+  const [testResults, setTestResults] = useState<Record<string, ModelTestResult>>({});
+  const [testingId, setTestingId] = useState<string | null>(null);
 
   const catalogQuery = useModelCatalog();
   const availableQuery = useAvailableModels();
   const settingsQuery = useSettings();
   const syncMutation = useSyncModels();
   const updateMutation = useUpdateModel();
+  const testMutation = useTestModel();
 
   const models = useMemo(() => catalogQuery.data?.models ?? [], [catalogQuery.data]);
 
@@ -170,6 +179,31 @@ export function ModelsPage() {
       toast.success(model.is_enabled ? `${model.public_name} disabled` : `${model.public_name} enabled`);
     } catch (caught) {
       toast.error(caught instanceof ApiError ? caught.message : "Could not update the model.");
+    }
+  };
+
+  const runModelTest = async (model: Model) => {
+    setTestingId(model.id);
+    try {
+      const result = await testMutation.mutateAsync(model.id);
+      setTestResults((current) => ({ ...current, [model.id]: result }));
+      if (result.usable) toast.success(`${model.public_name} is usable (${result.latency_ms} ms)`);
+      else toast.error(`${model.public_name}: ${result.message}`);
+    } catch (caught) {
+      const message = caught instanceof ApiError ? caught.message : "Could not test the model.";
+      setTestResults((current) => ({
+        ...current,
+        [model.id]: {
+          usable: false,
+          upstream_status: 0,
+          latency_ms: 0,
+          message,
+          sample: null,
+        },
+      }));
+      toast.error(message);
+    } finally {
+      setTestingId(null);
     }
   };
 
@@ -386,6 +420,7 @@ export function ModelsPage() {
                     <TH>Status</TH>
                     <TH>Alias / display name</TH>
                     <TH>Provider</TH>
+                    <TH>Test</TH>
                   </TR>
                 </THead>
                 <TBody>
@@ -445,6 +480,13 @@ export function ModelsPage() {
                               <span className="text-xs">Set alias</span>
                             </Button>
                           </div>
+                        </TD>
+                        <TD>
+                          <ModelTestCell
+                            result={testResults[model.id]}
+                            testing={testingId === model.id}
+                            onTest={() => void runModelTest(model)}
+                          />
                         </TD>
                       </TR>
                     );
@@ -596,5 +638,77 @@ function StatusToggle({
         )}
       />
     </button>
+  );
+}
+
+/**
+ * Inline "is this model usable?" probe. Sends one minimal completion through the
+ * upstream and reports pass/fail plus a short reason (F-05 admin tooling).
+ */
+function ModelTestCell({
+  result,
+  testing,
+  onTest,
+}: {
+  result?: ModelTestResult;
+  testing: boolean;
+  onTest: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="flex flex-col items-start gap-1.5">
+      <div className="flex items-center gap-2">
+        <Button
+          variant="secondary"
+          size="sm"
+          loading={testing}
+          onClick={onTest}
+          aria-label="Test this model"
+        >
+          {!testing ? <FlaskConical className="h-3.5 w-3.5" /> : null}
+          <span className="text-xs">{result ? "Retest" : "Test"}</span>
+        </Button>
+
+        {testing ? (
+          <span className="inline-flex items-center gap-1 text-xs text-muted">
+            <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+            Testing…
+          </span>
+        ) : null}
+
+        {!testing && result ? (
+          result.usable ? (
+            <Badge tone="success">
+              <CircleCheck className="mr-1 h-3 w-3" aria-hidden />
+              Usable
+            </Badge>
+          ) : (
+            <Badge tone="danger">
+              <CircleX className="mr-1 h-3 w-3" aria-hidden />
+              Unusable
+            </Badge>
+          )
+        ) : null}
+      </div>
+
+      {!testing && result ? (
+        <div className="max-w-xs">
+          <button
+            type="button"
+            onClick={() => setExpanded((open) => !open)}
+            className="text-left text-xs text-muted hover:text-foreground"
+            title={result.message}
+          >
+            {result.message}
+          </button>
+          {expanded && result.sample ? (
+            <p className="mt-1 rounded border border-border bg-surface px-2 py-1 font-mono text-[11px] text-muted">
+              “{result.sample}”
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
   );
 }

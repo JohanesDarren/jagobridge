@@ -58,6 +58,11 @@ export const UPSTREAM_MODELS_PATH = "/models";
 export const UPSTREAM_CHAT_COMPLETIONS_PATH = "/chat/completions";
 export const HEALTH_UPSTREAM_CACHE_SECONDS = 30;
 
+/** Admin "Test model" probe (F-05): a minimal completion used to prove a model works. */
+export const MODEL_TEST_TIMEOUT_SECONDS = 20;
+export const MODEL_TEST_MAX_TOKENS = 16;
+export const MODEL_TEST_PROMPT = "Reply with the single word: pong.";
+
 export const CHARS_PER_ESTIMATED_TOKEN = 4;
 
 export const PUBLIC_NAME_PATTERN = /^[a-z0-9][a-z0-9./-]{0,99}$/;

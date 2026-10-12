@@ -11,6 +11,7 @@ import type {
   Invitation,
   Model,
   ModelCatalogResponse,
+  ModelTestResult,
   PaginatedEnvelope,
   Settings,
   SuccessEnvelope,
@@ -85,6 +86,18 @@ export function useUpdateModel() {
       return response.data;
     },
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["models"] }),
+  });
+}
+
+/** Probes a single model against the upstream so an admin can judge usability (F-05). */
+export function useTestModel() {
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiRequest<SuccessEnvelope<ModelTestResult>>(`/models/${id}/test`, {
+        method: "POST",
+      });
+      return response.data;
+    },
   });
 }
 

@@ -14,6 +14,7 @@ import {
 } from "../../repositories/model.repository.js";
 import { canUseModel, invalidateAllAccessCaches, resolveEffectiveAccess } from "../../services/access.service.js";
 import { getSyncStatus, syncModels } from "../../services/model-sync.service.js";
+import { testModel } from "../../services/model-test.service.js";
 import { recordAudit } from "../../services/audit.service.js";
 
 export const modelsRouter = Router();
@@ -80,6 +81,22 @@ modelsRouter.post(
   asyncHandler(async (req, res) => {
     const result = await syncModels(req.authUser!.id, requestMeta(req));
     res.status(200).json(successResponse(result, "Model sync completed"));
+  }),
+);
+
+/** Probes one model against 9router so an admin can see if it is actually usable (F-05). */
+modelsRouter.post(
+  "/:id/test",
+  requireAuth,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const id = req.params.id!;
+    const model = await findModelById(id);
+    if (!model) throw new AppError(404, "NOT_FOUND", "Model not found");
+
+    const result = await testModel(model);
+    const message = result.usable ? "Model is usable" : "Model is not usable";
+    res.status(200).json(successResponse(result, message));
   }),
 );
 
