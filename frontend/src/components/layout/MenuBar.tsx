@@ -1,47 +1,30 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import {
-  Activity,
-  Boxes,
-  ChevronDown,
-  CircleHelp,
-  FileText,
-  Gauge,
-  KeyRound,
-  LogOut,
-  Menu,
-  Package,
-  Settings as SettingsIcon,
-  ShieldCheck,
-  Sparkles,
-  Terminal,
-  Users,
-  X,
-} from "lucide-react";
+import { ChevronDown, Menu, X } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { isAdmin } from "../../lib/permissions";
 import { cn } from "../../lib/utils";
 import { Modal } from "../ui/Modal";
 import { Badge } from "../ui/Badge";
+import { Logo } from "../ui/Logo";
 
 interface NavItem {
   to: string;
   label: string;
-  icon: typeof Gauge;
   adminOnly?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { to: "/", label: "Dashboard", icon: Gauge },
-  { to: "/models", label: "Models", icon: Boxes },
-  { to: "/usage", label: "Usage", icon: Activity },
-  { to: "/api-keys", label: "API Keys", icon: KeyRound },
-  { to: "/packages", label: "API Packages", icon: Package, adminOnly: true },
-  { to: "/users", label: "Clients & Access", icon: Users, adminOnly: true },
-  { to: "/features", label: "Features", icon: Sparkles, adminOnly: true },
-  { to: "/audit-logs", label: "Audit Log", icon: FileText, adminOnly: true },
-  { to: "/settings", label: "Settings", icon: SettingsIcon, adminOnly: true },
-  { to: "/api-tester", label: "API Tester", icon: Terminal, adminOnly: true },
+  { to: "/", label: "Dashboard" },
+  { to: "/models", label: "Models" },
+  { to: "/usage", label: "Usage" },
+  { to: "/api-keys", label: "API Keys" },
+  { to: "/packages", label: "API Packages", adminOnly: true },
+  { to: "/users", label: "Clients & Access", adminOnly: true },
+  { to: "/features", label: "Features", adminOnly: true },
+  { to: "/audit-logs", label: "Audit Log", adminOnly: true },
+  { to: "/settings", label: "Settings", adminOnly: true },
+  { to: "/api-tester", label: "API Tester", adminOnly: true },
 ];
 
 /**
@@ -49,7 +32,7 @@ const NAV_ITEMS: NavItem[] = [
  *
  * Replaces the old sidebar: every section is a top-level item, with the
  * signed-in account in a dropdown on the right. On narrow screens the items
- * collapse behind a hamburger.
+ * collapse behind a hamburger. Deliberately text-only — no item icons.
  */
 export function MenuBar() {
   const { user, logout } = useAuth();
@@ -91,7 +74,7 @@ export function MenuBar() {
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     cn(
-      "flex items-center gap-2 rounded-lg px-3 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors",
+      "rounded-lg px-3 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors",
       isActive
         ? "bg-primary/10 text-primary"
         : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
@@ -101,29 +84,20 @@ export function MenuBar() {
     <>
       <header className="sticky top-0 z-40 border-b border-border bg-white">
         <div className="flex h-12 items-center gap-2 px-3 sm:px-4">
-          {/* Brand */}
+          {/* Brand — mark only, no wordmark */}
           <button
             type="button"
             onClick={() => navigate("/")}
-            className="flex shrink-0 items-center gap-2 rounded-lg px-1.5 py-1 transition-colors hover:bg-slate-100"
+            className="flex shrink-0 items-center rounded-lg p-1 transition-colors hover:bg-slate-100"
             aria-label="JagoBridge home"
           >
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-[#0b22db] via-[#091ea2] to-[#040e5e]">
-              <Sparkles className="h-4 w-4 text-cyan-300" />
-            </span>
-            <span className="hidden text-sm font-bold tracking-tight text-foreground sm:inline">
-              JagoBridge
-            </span>
-            <span className="hidden rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold uppercase text-primary lg:inline">
-              Pro
-            </span>
+            <Logo className="h-7 w-7" />
           </button>
 
           {/* Desktop nav */}
           <nav className="hidden min-w-0 flex-1 items-center gap-0.5 overflow-x-auto lg:flex" aria-label="Main">
             {items.map((item) => (
               <NavLink key={item.to} to={item.to} end={item.to === "/"} className={linkClass}>
-                <item.icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
                 {item.label}
               </NavLink>
             ))}
@@ -182,9 +156,8 @@ export function MenuBar() {
                     setAccountOpen(false);
                     navigate("/change-password");
                   }}
-                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] text-slate-700 transition-colors hover:bg-slate-100"
+                  className="block w-full px-3 py-2 text-left text-[13px] text-slate-700 transition-colors hover:bg-slate-100"
                 >
-                  <ShieldCheck className="h-4 w-4 text-slate-400" aria-hidden />
                   Change password
                 </button>
                 <button
@@ -194,9 +167,8 @@ export function MenuBar() {
                     setAccountOpen(false);
                     setAboutOpen(true);
                   }}
-                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] text-slate-700 transition-colors hover:bg-slate-100"
+                  className="block w-full px-3 py-2 text-left text-[13px] text-slate-700 transition-colors hover:bg-slate-100"
                 >
-                  <CircleHelp className="h-4 w-4 text-slate-400" aria-hidden />
                   About JagoBridge
                 </button>
                 <div className="my-1 h-px bg-border" role="separator" />
@@ -204,9 +176,8 @@ export function MenuBar() {
                   type="button"
                   role="menuitem"
                   onClick={() => void handleLogout()}
-                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] text-danger transition-colors hover:bg-red-50"
+                  className="block w-full px-3 py-2 text-left text-[13px] text-danger transition-colors hover:bg-red-50"
                 >
-                  <LogOut className="h-4 w-4" aria-hidden />
                   Sign out
                 </button>
               </div>
@@ -226,14 +197,13 @@ export function MenuBar() {
                   onClick={() => setMobileOpen(false)}
                   className={({ isActive }) =>
                     cn(
-                      "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                      "rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                       isActive
                         ? "bg-primary/10 text-primary"
                         : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
                     )
                   }
                 >
-                  <item.icon className="h-4 w-4 shrink-0" aria-hidden />
                   {item.label}
                 </NavLink>
               ))}
@@ -245,9 +215,7 @@ export function MenuBar() {
       <Modal open={aboutOpen} title="About JagoBridge" onClose={() => setAboutOpen(false)}>
         <div className="space-y-3 text-sm">
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#0b22db] via-[#091ea2] to-[#040e5e]">
-              <Sparkles className="h-5 w-5 text-cyan-300" />
-            </span>
+            <Logo className="h-10 w-10" />
             <div>
               <p className="font-semibold text-foreground">JagoBridge</p>
               <p className="text-xs text-muted">Enterprise AI Gateway</p>
