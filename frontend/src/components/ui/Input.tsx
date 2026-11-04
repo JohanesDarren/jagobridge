@@ -1,9 +1,17 @@
 import { forwardRef, type InputHTMLAttributes, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
 import { cn } from "../../lib/utils";
 
-export function Label({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) {
+export function Label({
+  children,
+  htmlFor,
+  className,
+}: {
+  children: React.ReactNode;
+  htmlFor?: string;
+  className?: string;
+}) {
   return (
-    <label className="jb-label" htmlFor={htmlFor}>
+    <label className={cn("jb-label", className)} htmlFor={htmlFor}>
       {children}
     </label>
   );

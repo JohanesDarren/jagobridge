@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { Suspense, lazy, useEffect, useState, type FormEvent } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AtSign, Eye, EyeOff, Lock } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
@@ -6,6 +6,55 @@ import { ApiError } from "../../lib/api-client";
 import { Button } from "../../components/ui/Button";
 import { FieldError, Input, Label } from "../../components/ui/Input";
 import { Logo } from "../../components/ui/Logo";
+
+/**
+ * The 3D scene is split out so the WebGL bundle never blocks first paint and
+ * never loads at all for users who cannot use it.
+ */
+const BridgeScene = lazy(() =>
+  import("./login3d/BridgeScene").then((m) => ({ default: m.BridgeScene })),
+);
+const Logo3D = lazy(() =>
+  import("./login3d/Logo3D").then((m) => ({ default: m.Logo3D })),
+);
+
+/** True when the visitor asked the OS to reduce motion. */
+function useReducedMotion(): boolean {
+  const [reduced, setReduced] = useState(false);
+
+  useEffect(() => {
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduced(query.matches);
+    const listener = (event: MediaQueryListEvent) => setReduced(event.matches);
+    query.addEventListener("change", listener);
+    return () => query.removeEventListener("change", listener);
+  }, []);
+
+  return reduced;
+}
+
+/**
+ * WebGL support check. Without it the 3D canvas would mount and fail, so we
+ * fall back to a static gradient instead.
+ */
+function useWebGLSupport(): boolean {
+  const [supported, setSupported] = useState(false);
+
+  useEffect(() => {
+    try {
+      const canvas = document.createElement("canvas");
+      const context =
+        canvas.getContext("webgl2") ??
+        canvas.getContext("webgl") ??
+        canvas.getContext("experimental-webgl");
+      setSupported(Boolean(context));
+    } catch {
+      setSupported(false);
+    }
+  }, []);
+
+  return supported;
+}
 
 export function LoginPage() {
   const { status, user, login } = useAuth();
@@ -16,6 +65,9 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [submitting, setSubmitting] = useState(false);
+
+  const reducedMotion = useReducedMotion();
+  const webgl = useWebGLSupport();
 
   if (status === "authenticated" && user) {
     return <Navigate to={user.must_change_password ? "/change-password" : "/"} replace />;
@@ -42,76 +94,71 @@ export function LoginPage() {
   };
 
   const fieldClass =
-    "h-[52px] border-slate-200 bg-white text-base text-slate-900 placeholder:text-slate-400 focus:border-primary";
+    "h-[52px] border-white/20 bg-white/[0.07] text-base text-white placeholder:text-slate-400 focus:border-cyan-300/70 focus:ring-cyan-300/20 hover:border-white/30";
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-white font-sans">
-      <svg className="sr-only" aria-hidden="true">
-        <defs>
-          <linearGradient id="jbLoginGrad" x1="0%" y1="0%" x2="90%" y2="100%">
-            <stop offset="0%" stopColor="#e0f2fe" />
-            <stop offset="45%" stopColor="#bae6fd" />
-            <stop offset="100%" stopColor="#7dd3fc" />
-          </linearGradient>
-        </defs>
-      </svg>
-
-      {/* ---------------------------------------- CURVED GRADIENT (DESKTOP) */}
-      <svg
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
-        className="pointer-events-none absolute inset-y-0 left-0 hidden h-full w-[62%] lg:block"
-        aria-hidden="true"
-      >
-        <path d="M0,0 H60 C 74,20 48,44 64,66 C 72,80 78,90 72,100 H0 Z" fill="url(#jbLoginGrad)" />
-      </svg>
-
-      {/* Soft light behind the edge */}
-      <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-[62%] lg:block">
-        <div className="absolute left-[-10%] top-[-12%] h-[420px] w-[420px] rounded-full bg-white/70 blur-[120px]" />
-        <div className="absolute bottom-[-14%] left-[28%] h-[380px] w-[380px] rounded-full bg-cyan-200/60 blur-[130px]" />
+    <div className="relative min-h-screen w-full overflow-hidden bg-[#070d1b] font-sans">
+      {/* ------------------------------------------------------ 3D BACKGROUND */}
+      <div className="absolute inset-0 z-0">
+        {webgl ? (
+          <Suspense fallback={<StaticBackdrop />}>
+            <BridgeScene reducedMotion={reducedMotion} />
+          </Suspense>
+        ) : (
+          <StaticBackdrop />
+        )}
       </div>
 
-      {/* ----------------------------------------- CURVED GRADIENT (MOBILE) */}
-      <svg
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
-        className="pointer-events-none absolute inset-x-0 top-0 h-[340px] w-full lg:hidden"
+      {/* Vignette so the centred card always has contrast over the scene. */}
+      <div
+        className="pointer-events-none absolute inset-0 z-10"
+        style={{
+          background:
+            "radial-gradient(ellipse 46% 54% at 50% 50%, rgba(7,13,27,0.86) 0%, rgba(7,13,27,0.45) 46%, rgba(7,13,27,0.04) 74%, rgba(7,13,27,0.42) 100%)",
+        }}
         aria-hidden="true"
-      >
-        <path d="M0,0 H100 V74 C 70,96 32,62 0,86 Z" fill="url(#jbLoginGrad)" />
-      </svg>
+      />
 
-      {/* ----------------------------------------------------------- CONTENT */}
-      <div className="relative z-10 grid min-h-screen w-full lg:grid-cols-[62%_38%]">
-        {/* Brand + welcome */}
-        <div className="flex min-h-[340px] items-center justify-center px-8 pb-10 pt-16 lg:min-h-full lg:justify-start lg:py-0 lg:pl-20">
-          <div className="flex max-w-lg flex-col items-center gap-6 text-center lg:items-start lg:text-left">
-            <Logo className="h-16 w-16 drop-shadow-sm" />
-
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-slate-900">JagoBridge</h1>
-              <p className="mt-1 text-sm font-medium text-slate-600">Enterprise AI Gateway</p>
+      {/* ------------------------------------------------------------- CONTENT */}
+      <div className="relative z-20 flex min-h-screen w-full items-center justify-center px-5 py-10 sm:px-8">
+        <div className="w-full max-w-[452px]">
+          {/* Logo sits at the top-centre of the card */}
+          <div className="mb-5 flex flex-col items-center">
+            <div className="relative flex h-[132px] w-[132px] items-center justify-center">
+              {webgl ? (
+                <Suspense fallback={<Logo className="h-16 w-16 drop-shadow-lg" />}>
+                  <Logo3D reducedMotion={reducedMotion} />
+                </Suspense>
+              ) : (
+                <Logo className="h-16 w-16 drop-shadow-lg" />
+              )}
             </div>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-white">JagoBridge</h1>
+            <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-300/80">
+              Enterprise AI Gateway
+            </p>
+          </div>
 
-            <div>
-              <p className="text-2xl font-semibold tracking-tight text-slate-900">Welcome back</p>
-              <p className="mt-2 text-base leading-relaxed text-slate-600">
-                Sign in to manage your models, monitor usage, and keep your team&apos;s AI access
-                secure — all from one place.
+          {/* Glass sign-in card */}
+          <div className="relative rounded-[26px] border border-white/12 bg-white/[0.055] p-7 shadow-[0_24px_70px_-20px_rgba(0,0,0,0.85)] backdrop-blur-2xl sm:p-8">
+            {/* Top highlight edge */}
+            <div
+              className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent"
+              aria-hidden="true"
+            />
+
+            <div className="mb-6 text-center">
+              <h2 className="text-xl font-semibold tracking-tight text-white">Masuk</h2>
+              <p className="mt-1.5 text-sm text-slate-200/90">
+                Akses model AI tim Anda dengan satu pintu.
               </p>
             </div>
-          </div>
-        </div>
 
-        {/* Sign-in form */}
-        <div className="flex items-center justify-center px-6 py-16 lg:py-0">
-          <div className="w-full max-w-[440px]">
-            <h2 className="mb-7 text-3xl font-bold tracking-tight text-slate-900">Masuk</h2>
-
-            <form onSubmit={onSubmit} className="space-y-6">
+            <form onSubmit={onSubmit} className="space-y-5">
               <div>
-                <Label htmlFor="email">EMAIL</Label>
+                <Label htmlFor="email" className="text-slate-200/90">
+                  EMAIL
+                </Label>
                 <Input
                   id="email"
                   type="email"
@@ -127,7 +174,9 @@ export function LoginPage() {
               </div>
 
               <div>
-                <Label htmlFor="password">KATA SANDI</Label>
+                <Label htmlFor="password" className="text-slate-200/90">
+                  KATA SANDI
+                </Label>
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
@@ -142,7 +191,7 @@ export function LoginPage() {
                       type="button"
                       tabIndex={-1}
                       onClick={() => setShowPassword((open) => !open)}
-                      className="p-1 text-slate-400 transition-colors hover:text-slate-600"
+                      className="p-1 text-slate-400 transition-colors hover:text-white"
                       aria-label={showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
                     >
                       {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -154,7 +203,10 @@ export function LoginPage() {
               </div>
 
               {error ? (
-                <div className="rounded-xl border border-red-200 bg-red-50/90 px-4 py-3 text-sm text-danger" role="alert">
+                <div
+                  className="rounded-xl border border-red-400/30 bg-red-500/12 px-4 py-3 text-sm text-red-200"
+                  role="alert"
+                >
                   {error}
                 </div>
               ) : null}
@@ -163,14 +215,28 @@ export function LoginPage() {
                 type="submit"
                 size="lg"
                 loading={submitting}
-                className="h-[52px] w-full rounded-xl bg-primary text-base font-semibold text-white shadow-brand hover:bg-primary-hover"
+                className="h-[52px] w-full rounded-xl bg-gradient-to-b from-[#2a44ff] to-primary text-base font-semibold text-white shadow-[0_10px_30px_-8px_rgba(13,38,222,0.85)] ring-1 ring-inset ring-white/20 transition-all hover:-translate-y-0.5 hover:from-[#3a54ff] hover:to-[#0d26de] active:translate-y-0"
               >
                 Masuk
               </Button>
             </form>
           </div>
+
+          <p className="mt-6 text-center text-xs text-slate-300/70">
+            Dilindungi kebijakan akses internal JagoAI
+          </p>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Shown while the WebGL bundle loads, and for browsers without WebGL. */
+function StaticBackdrop() {
+  return (
+    <div className="h-full w-full bg-[#070d1b]">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_28%,rgba(47,107,214,0.42),transparent_58%)]" />
+      <div className="absolute inset-x-0 bottom-0 h-1/2 bg-[linear-gradient(to_top,rgba(13,38,222,0.28),transparent)]" />
     </div>
   );
 }
