@@ -173,10 +173,16 @@ function Cables({ reducedMotion }: { reducedMotion: boolean }) {
     const time = state.clock.getElapsedTime();
     packets.current.children.forEach((child, index) => {
       const offset = index / packets.current!.children.length;
-      const t = (offset + time * 0.045) % 1;
+      // Faster than before so the "gateway traffic" reads as flowing.
+      const t = (offset + time * 0.085) % 1;
       const curve = curves[index % curves.length];
       const point = curve.getPointAt(t);
       child.position.set(point.x, point.y + 0.02, point.z);
+
+      // Fade each packet in and out at the ends of its run so it never pops.
+      const fade = Math.sin(Math.PI * t);
+      const material = (child as THREE.Mesh).material as THREE.MeshBasicMaterial;
+      material.opacity = 0.15 + fade * 0.85;
     });
   });
 
@@ -184,7 +190,13 @@ function Cables({ reducedMotion }: { reducedMotion: boolean }) {
     <group>
       {tubes.map((geometry, index) => (
         <mesh key={`cable-${index}`} geometry={geometry}>
-          <meshStandardMaterial color="#a9c8ea" metalness={0.9} roughness={0.22} />
+          <meshStandardMaterial
+            color="#a9c8ea"
+            metalness={0.9}
+            roughness={0.22}
+            emissive="#2f6bd6"
+            emissiveIntensity={0.35}
+          />
         </mesh>
       ))}
 
@@ -202,10 +214,15 @@ function Cables({ reducedMotion }: { reducedMotion: boolean }) {
 
       {/* Data packets sliding along the cables — the "gateway traffic" cue. */}
       <group ref={packets}>
-        {Array.from({ length: 10 }, (_, i) => (
+        {Array.from({ length: 14 }, (_, i) => (
           <mesh key={`packet-${i}`}>
-            <sphereGeometry args={[0.055, 10, 10]} />
-            <meshBasicMaterial color={i % 2 === 0 ? "#7dd3fc" : "#a5b4fc"} />
+            <sphereGeometry args={[0.07, 10, 10]} />
+            <meshBasicMaterial
+              color={i % 2 === 0 ? "#7dd3fc" : "#a5b4fc"}
+              transparent
+              opacity={1}
+              toneMapped={false}
+            />
           </mesh>
         ))}
       </group>
@@ -233,11 +250,26 @@ function ProviderTile({
   useEffect(() => () => texture.dispose(), [texture]);
 
   useFrame((state) => {
-    if (reducedMotion || !mesh.current) return;
+    if (!mesh.current) return;
     const time = state.clock.getElapsedTime();
-    // Slow billboard-ish sway so tiles always present their face to the viewer.
-    mesh.current.rotation.y = Math.sin(time * 0.42 + index * 1.7) * 0.3;
-    mesh.current.rotation.z = Math.sin(time * 0.31 + index * 2.1) * 0.05;
+
+    // Per-tile phase keeps the field from moving as one rigid block.
+    const phase = index * 0.9;
+
+    if (!reducedMotion) {
+      // Continuous looping orbit: each tile traces its own slow ellipse, so
+      // there is always motion but the loop never snaps.
+      mesh.current.rotation.y = Math.sin(time * 0.5 + phase) * 0.38;
+      mesh.current.rotation.x = Math.cos(time * 0.38 + phase) * 0.14;
+      mesh.current.rotation.z = Math.sin(time * 0.31 + phase * 1.3) * 0.07;
+
+      // A travelling wave across the formation, then a slow vertical float.
+      mesh.current.position.y =
+        Math.sin(time * 0.85 + phase) * 0.13 + Math.sin(time * 1.4 + index * 0.4) * 0.045;
+    } else {
+      mesh.current.rotation.y = Math.sin(time * 0.4 + phase) * 0.22;
+    }
+
     if (halo.current) {
       const pulse = 0.2 + Math.sin(time * 0.9 + index) * 0.05;
       (halo.current.material as THREE.MeshBasicMaterial).opacity = pulse;
@@ -338,11 +370,15 @@ function CameraRig({ reducedMotion }: { reducedMotion: boolean }) {
   const { camera, pointer } = useThree();
   const target = useRef(new THREE.Vector3(0, 2.1, 0));
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     const damp = 1 - Math.pow(0.001, delta);
-    const parallax = reducedMotion ? 0 : 1;
-    const desiredX = pointer.x * 1.15 * parallax;
-    const desiredY = 3.05 + pointer.y * 0.5 * parallax;
+    const time = state.clock.getElapsedTime();
+
+    // A slow looping orbit keeps the scene alive even when the pointer is
+    // still; the pointer parallax is layered on top so interaction still reads.
+    const drift = reducedMotion ? 0 : 1;
+    const desiredX = (pointer.x * 1.15 + Math.sin(time * 0.16) * 0.85) * drift;
+    const desiredY = 3.05 + (pointer.y * 0.5 + Math.sin(time * 0.23) * 0.22) * drift;
 
     camera.position.x += (desiredX - camera.position.x) * damp;
     camera.position.y += (desiredY - camera.position.y) * damp;
