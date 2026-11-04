@@ -293,17 +293,17 @@ function ProviderTile({
       <group position={position}>
         {/* White card, so the brand mark reads exactly as it does on paper. */}
         <mesh ref={mesh}>
-          <boxGeometry args={[1.15, 1.15, 0.12]} />
+          <boxGeometry args={[1.4, 1.4, 0.12]} />
           <meshStandardMaterial color="#ffffff" metalness={0.05} roughness={0.45} />
         </mesh>
         {/* The real logo, floating just in front of the card face. */}
         <mesh position={[0, 0, 0.062]}>
-          <planeGeometry args={[0.84, 0.84]} />
+          <planeGeometry args={[1.02, 1.02]} />
           <meshBasicMaterial map={texture} transparent toneMapped={false} depthWrite={false} />
         </mesh>
         {/* Soft backing glow so tiles separate from the dark background. */}
         <mesh ref={halo} position={[0, 0, -0.1]}>
-          <planeGeometry args={[1.9, 1.9]} />
+          <planeGeometry args={[2.1, 2.1]} />
           <meshBasicMaterial color="#4f8cf0" transparent opacity={0.22} depthWrite={false} />
         </mesh>
       </group>
@@ -330,8 +330,8 @@ function ProviderField({ reducedMotion }: { reducedMotion: boolean }) {
     const left = PROVIDERS.slice(0, half);
     const right = PROVIDERS.slice(half);
 
-    const INNER = 5.45;
-    const OUTER = 9.4;
+    const INNER = 5.6;
+    const OUTER = 9.0;
 
     const build = (brands: ProviderBrand[], side: -1 | 1) => {
       const top = brands.filter((_, i) => i % 2 === 0);
@@ -342,8 +342,9 @@ function ProviderField({ reducedMotion }: { reducedMotion: boolean }) {
           const t = count === 1 ? 0.5 : i / (count - 1);
           const x = side * (INNER + t * (OUTER - INNER));
           const drift = Math.sin(t * Math.PI + phase) * 0.14;
-          // Keep the depth spread small: large z pushes inner tiles behind the card.
-          const z = (i % 2 === 0 ? 1 : -1) * 0.25;
+          // Tiles sit IN FRONT of the cables (which are at ±0.95), otherwise the
+          // suspension wires draw straight over the brand marks.
+          const z = 1.55 + (i % 2 === 0 ? 0.12 : 0);
           return { brand, position: [x, y + drift, z] as [number, number, number] };
         });
 
