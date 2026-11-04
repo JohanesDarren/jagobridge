@@ -48,8 +48,11 @@ function buildArchCurve(): THREE.CurvePath<THREE.Vector3> {
     ),
   );
 
-  // S 25 16, 25 20  (reflected control point about the apex)
-  const [c3x, c3y] = toWorld(25 - (10 - 16), 13);
+  // S 25 16, 25 20
+  // The first control point of an SVG `s` command is the reflection of the
+  // previous segment's second control point about the current point:
+  //   2 * (16,13) - (10,13) = (22,13)
+  const [c3x, c3y] = toWorld(2 * 16 - 10, 13);
   const [c4x, c4y] = toWorld(25, 16);
   const [x1, y1] = toWorld(25, 20);
 

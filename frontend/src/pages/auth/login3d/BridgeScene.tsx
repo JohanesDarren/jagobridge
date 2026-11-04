@@ -293,17 +293,17 @@ function ProviderTile({
       <group position={position}>
         {/* White card, so the brand mark reads exactly as it does on paper. */}
         <mesh ref={mesh}>
-          <boxGeometry args={[1.4, 1.4, 0.12]} />
+          <boxGeometry args={[1.1, 1.1, 0.1]} />
           <meshStandardMaterial color="#ffffff" metalness={0.05} roughness={0.45} />
         </mesh>
         {/* The real logo, floating just in front of the card face. */}
-        <mesh position={[0, 0, 0.062]}>
-          <planeGeometry args={[1.02, 1.02]} />
+        <mesh position={[0, 0, 0.052]}>
+          <planeGeometry args={[0.78, 0.78]} />
           <meshBasicMaterial map={texture} transparent toneMapped={false} depthWrite={false} />
         </mesh>
         {/* Soft backing glow so tiles separate from the dark background. */}
-        <mesh ref={halo} position={[0, 0, -0.1]}>
-          <planeGeometry args={[2.1, 2.1]} />
+        <mesh ref={halo} position={[0, 0, -0.08]}>
+          <planeGeometry args={[1.6, 1.6]} />
           <meshBasicMaterial color="#4f8cf0" transparent opacity={0.22} depthWrite={false} />
         </mesh>
       </group>
@@ -312,16 +312,28 @@ function ProviderTile({
 }
 
 /**
- * Lays the tiles in two staggered rows either side of centre.
+ * Cable height at any x, across both the main span and the side spans.
+ * Tiles hang from this curve, so their rows follow the bridge rather than
+ * floating in an unrelated grid.
+ */
+function cableYAt(x: number): number {
+  const ax = Math.abs(x);
+  if (ax <= TOWER_X) {
+    return TOWER_TOP - CABLE_SAG * (1 - (ax / TOWER_X) ** 2);
+  }
+  const anchorY = DECK_Y + 0.35;
+  const t = Math.min((ax - TOWER_X) / (ANCHOR_X - TOWER_X), 1);
+  return TOWER_TOP - (TOWER_TOP - anchorY) * t ** 0.82;
+}
+
+/**
+ * Lays the tiles in two rows either side of centre, both hanging from the
+ * cable line so the formation follows the bridge.
  *
- * The bounds are not arbitrary. At this camera the frustum is ~12 world units
- * half-width at the tiles' depth, and the login card covers ±3.8. Because a
- * tile sits further from the camera at negative z, its screen footprint grows,
- * so the inner edge has to clear the card at the *deepest* z, not the nearest.
- * INNER/OUTER below are the values that keep every tile fully on screen and
- * clear of the card at the same time.
- *
- * Adding providers to PROVIDERS automatically extends the formation.
+ * Spacing is the whole point here. At z=1.55 the frustum is ~10.6 world units
+ * half-width and one world unit is ~59.5px, so a 1.1-unit tile is ~65px wide.
+ * The band between the login card (±3.8) and the frame edge leaves room for
+ * 4 tiles per row at ~104px centres — a ~39px gap, so nothing overlaps.
  */
 function ProviderField({ reducedMotion }: { reducedMotion: boolean }) {
   const placements = useMemo(() => {
@@ -330,25 +342,24 @@ function ProviderField({ reducedMotion }: { reducedMotion: boolean }) {
     const left = PROVIDERS.slice(0, half);
     const right = PROVIDERS.slice(half);
 
-    const INNER = 5.6;
-    const OUTER = 9.0;
+    const INNER = 4.55;
+    const OUTER = 9.8;
 
     const build = (brands: ProviderBrand[], side: -1 | 1) => {
       const top = brands.filter((_, i) => i % 2 === 0);
       const bottom = brands.filter((_, i) => i % 2 === 1);
 
-      const place = (group: ProviderBrand[], y: number, count: number, phase: number) =>
+      const place = (group: ProviderBrand[], drop: number) =>
         group.map((brand, i) => {
-          const t = count === 1 ? 0.5 : i / (count - 1);
+          const t = group.length === 1 ? 0.5 : i / (group.length - 1);
           const x = side * (INNER + t * (OUTER - INNER));
-          const drift = Math.sin(t * Math.PI + phase) * 0.14;
-          // Tiles sit IN FRONT of the cables (which are at ±0.95), otherwise the
-          // suspension wires draw straight over the brand marks.
-          const z = 1.55 + (i % 2 === 0 ? 0.12 : 0);
-          return { brand, position: [x, y + drift, z] as [number, number, number] };
+          // Hang below the cable, at the tile's own x, so the row slopes with it.
+          const y = cableYAt(Math.abs(x)) - drop;
+          return { brand, position: [x, y, 1.55] as [number, number, number] };
         });
 
-      return [...place(top, 3.42, top.length, 0.4), ...place(bottom, 2.0, bottom.length, 2.1)];
+      // Rows are 1.5 units apart, comfortably more than one tile height.
+      return [...place(top, 1.05), ...place(bottom, 2.55)];
     };
 
     return [...build(left, -1), ...build(right, 1)];
