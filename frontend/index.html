@@ -17,5 +17,18 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <!--
+      Umami analytics. This tag used to live only as an uncommitted edit on the
+      production server, so every deploy that reset the working tree silently
+      dropped it. Kept in source so a clean checkout always ships it.
+      The path is served by the hosting panel's proxy; locally it 404s harmlessly.
+    -->
+    <script
+      async
+      defer
+      data-website-id="318d8297-43b7-4958-aeb2-40ab93d87657"
+      data-host-url="/umami-analytics"
+      src="/umami-analytics/script.js"
+    ></script>
   </body>
 </html>
