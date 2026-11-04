@@ -58,6 +58,14 @@ export const UPSTREAM_MODELS_PATH = "/models";
 export const UPSTREAM_CHAT_COMPLETIONS_PATH = "/chat/completions";
 export const HEALTH_UPSTREAM_CACHE_SECONDS = 30;
 
+/**
+ * The health probe gets its own ceiling, independent of
+ * UPSTREAM_CONNECT_TIMEOUT_SECONDS. 9router's /models regularly takes 3-5s,
+ * so reusing the 5s gateway connect budget made /health flap between
+ * healthy and degraded on identical traffic.
+ */
+export const HEALTH_UPSTREAM_TIMEOUT_SECONDS = 10;
+
 /** Admin "Test model" probe (F-05): a minimal completion used to prove a model works. */
 export const MODEL_TEST_TIMEOUT_SECONDS = 20;
 export const MODEL_TEST_MAX_TOKENS = 16;

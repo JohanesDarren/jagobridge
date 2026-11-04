@@ -1,6 +1,6 @@
 import { loadEnv } from "../core/env.js";
 import { logger } from "../core/logger.js";
-import { HEALTH_UPSTREAM_CACHE_SECONDS, UPSTREAM_CHAT_COMPLETIONS_PATH, UPSTREAM_MODELS_PATH } from "../core/constants.js";
+import { HEALTH_UPSTREAM_CACHE_SECONDS, HEALTH_UPSTREAM_TIMEOUT_SECONDS, UPSTREAM_CHAT_COMPLETIONS_PATH, UPSTREAM_MODELS_PATH } from "../core/constants.js";
 
 const env = loadEnv();
 
@@ -50,10 +50,17 @@ export interface UpstreamResult<T> {
   errorBody?: string;
 }
 
-/** Calls GET /models on 9router. Used by sync and the connection test. */
-export async function listUpstreamModels(): Promise<UpstreamResult<{ data: UpstreamModel[] }>> {
+/**
+ * Calls GET /models on 9router. Used by sync and the connection test.
+ *
+ * `timeoutSeconds` defaults to the gateway connect budget; the health probe
+ * passes a longer one because a slow-but-successful upstream is still up.
+ */
+export async function listUpstreamModels(
+  timeoutSeconds: number = env.UPSTREAM_CONNECT_TIMEOUT_SECONDS,
+): Promise<UpstreamResult<{ data: UpstreamModel[] }>> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), env.UPSTREAM_CONNECT_TIMEOUT_SECONDS * 1000);
+  const timer = setTimeout(() => controller.abort(), timeoutSeconds * 1000);
   try {
     const response = await fetch(joinUrl(UPSTREAM_MODELS_PATH), {
       method: "GET",
@@ -85,7 +92,7 @@ export async function checkUpstreamHealth(): Promise<boolean> {
     return false;
   }
   try {
-    const result = await listUpstreamModels();
+    const result = await listUpstreamModels(HEALTH_UPSTREAM_TIMEOUT_SECONDS);
     const healthy = result.ok;
     upstreamHealthCache = { healthy, checkedAt: now };
     return healthy;
