@@ -245,6 +245,8 @@ function ProviderTile({
 }) {
   const mesh = useRef<THREE.Mesh>(null);
   const halo = useRef<THREE.Mesh>(null);
+  /** Wraps the whole card so position drift moves card + logo + glow together. */
+  const drift = useRef<THREE.Group>(null);
 
   // Real brand asset, rasterised from SVG at 512px by the browser.
   const texture = useTexture(providerLogoUrl(brand));
@@ -256,25 +258,23 @@ function ProviderTile({
   }, [texture]);
 
   useFrame((state) => {
-    if (!mesh.current) return;
+    if (!drift.current) return;
     const time = state.clock.getElapsedTime();
 
-    // Per-tile phase keeps the field from moving as one rigid block.
-    const phase = index * 0.9;
+    // Per-card phase so the formation never moves as one rigid block.
+    const phase = index * 0.77;
 
     if (!reducedMotion) {
-      // Gentle sway only: brand marks must stay legible, so the tiles lean a
-      // little rather than spinning away from the camera. The vertical bob and
-      // travelling wave carry the sense of motion instead.
-      mesh.current.rotation.y = Math.sin(time * 0.5 + phase) * 0.13;
-      mesh.current.rotation.x = Math.cos(time * 0.38 + phase) * 0.05;
-      mesh.current.rotation.z = Math.sin(time * 0.31 + phase * 1.3) * 0.03;
+      // The CARD itself travels its own closed loop through space — it is the
+      // card that moves, not the artwork inside it. Nothing slides, swaps or
+      // re-textures; only position and a slow turntable turn change.
+      drift.current.position.x = Math.sin(time * 0.5 + phase) * 0.17;
+      drift.current.position.y = Math.cos(time * 0.42 + phase * 1.3) * 0.12;
+      drift.current.position.z = Math.sin(time * 0.33 + phase * 0.8) * 0.09;
 
-      // A travelling wave across the formation, then a slow vertical float.
-      mesh.current.position.y =
-        Math.sin(time * 0.85 + phase) * 0.13 + Math.sin(time * 1.4 + index * 0.4) * 0.045;
-    } else {
-      mesh.current.rotation.y = Math.sin(time * 0.4 + phase) * 0.08;
+      drift.current.rotation.y = Math.sin(time * 0.35 + phase) * 0.2;
+      drift.current.rotation.x = Math.cos(time * 0.28 + phase) * 0.08;
+      drift.current.rotation.z = Math.sin(time * 0.22 + phase) * 0.04;
     }
 
     if (halo.current) {
@@ -285,27 +285,31 @@ function ProviderTile({
 
   return (
     <Float
-      speed={reducedMotion ? 0 : 1.35}
-      rotationIntensity={reducedMotion ? 0 : 0.16}
-      floatIntensity={reducedMotion ? 0 : 0.55}
-      floatingRange={[-0.09, 0.09]}
+      speed={reducedMotion ? 0 : 1.1}
+      rotationIntensity={0}
+      floatIntensity={reducedMotion ? 0 : 0.28}
+      floatingRange={[-0.06, 0.06]}
     >
       <group position={position}>
-        {/* White card, so the brand mark reads exactly as it does on paper. */}
-        <mesh ref={mesh}>
-          <boxGeometry args={[1.1, 1.1, 0.1]} />
-          <meshStandardMaterial color="#ffffff" metalness={0.05} roughness={0.45} />
-        </mesh>
-        {/* The real logo, floating just in front of the card face. */}
-        <mesh position={[0, 0, 0.052]}>
-          <planeGeometry args={[0.78, 0.78]} />
-          <meshBasicMaterial map={texture} transparent toneMapped={false} depthWrite={false} />
-        </mesh>
-        {/* Soft backing glow so tiles separate from the dark background. */}
-        <mesh ref={halo} position={[0, 0, -0.08]}>
-          <planeGeometry args={[1.6, 1.6]} />
-          <meshBasicMaterial color="#4f8cf0" transparent opacity={0.22} depthWrite={false} />
-        </mesh>
+        {/* Everything that makes up one card lives inside this group, so the
+            drift moves the card, its logo and its glow together. */}
+        <group ref={drift}>
+          {/* White card, so the brand mark reads exactly as it does on paper. */}
+          <mesh ref={mesh}>
+            <boxGeometry args={[1.1, 1.1, 0.1]} />
+            <meshStandardMaterial color="#ffffff" metalness={0.05} roughness={0.45} />
+          </mesh>
+          {/* The real logo, floating just in front of the card face. */}
+          <mesh position={[0, 0, 0.052]}>
+            <planeGeometry args={[0.78, 0.78]} />
+            <meshBasicMaterial map={texture} transparent toneMapped={false} depthWrite={false} />
+          </mesh>
+          {/* Soft backing glow so tiles separate from the dark background. */}
+          <mesh ref={halo} position={[0, 0, -0.08]}>
+            <planeGeometry args={[1.6, 1.6]} />
+            <meshBasicMaterial color="#4f8cf0" transparent opacity={0.22} depthWrite={false} />
+          </mesh>
+        </group>
       </group>
     </Float>
   );
