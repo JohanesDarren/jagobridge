@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef } from "react";
+import { Suspense, useEffect, useMemo, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { AdaptiveDpr, Environment, Float, Lightformer, RoundedBox } from "@react-three/drei";
+import { AdaptiveDpr, Environment, Float, Lightformer, RoundedBox, useTexture } from "@react-three/drei";
 import * as THREE from "three";
-import { PROVIDERS, createProviderTexture, type ProviderBrand } from "./providers";
+import { PROVIDERS, providerLogoUrl, type ProviderBrand } from "./providers";
 
 /**
  * Decorative 3D scene for the login screen.
@@ -245,9 +245,15 @@ function ProviderTile({
 }) {
   const mesh = useRef<THREE.Mesh>(null);
   const halo = useRef<THREE.Mesh>(null);
-  const texture = useMemo(() => createProviderTexture(brand), [brand]);
 
-  useEffect(() => () => texture.dispose(), [texture]);
+  // Real brand asset, rasterised from SVG at 512px by the browser.
+  const texture = useTexture(providerLogoUrl(brand));
+
+  useEffect(() => {
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.anisotropy = 8;
+    texture.needsUpdate = true;
+  }, [texture]);
 
   useFrame((state) => {
     if (!mesh.current) return;
@@ -257,17 +263,18 @@ function ProviderTile({
     const phase = index * 0.9;
 
     if (!reducedMotion) {
-      // Continuous looping orbit: each tile traces its own slow ellipse, so
-      // there is always motion but the loop never snaps.
-      mesh.current.rotation.y = Math.sin(time * 0.5 + phase) * 0.38;
-      mesh.current.rotation.x = Math.cos(time * 0.38 + phase) * 0.14;
-      mesh.current.rotation.z = Math.sin(time * 0.31 + phase * 1.3) * 0.07;
+      // Gentle sway only: brand marks must stay legible, so the tiles lean a
+      // little rather than spinning away from the camera. The vertical bob and
+      // travelling wave carry the sense of motion instead.
+      mesh.current.rotation.y = Math.sin(time * 0.5 + phase) * 0.13;
+      mesh.current.rotation.x = Math.cos(time * 0.38 + phase) * 0.05;
+      mesh.current.rotation.z = Math.sin(time * 0.31 + phase * 1.3) * 0.03;
 
       // A travelling wave across the formation, then a slow vertical float.
       mesh.current.position.y =
         Math.sin(time * 0.85 + phase) * 0.13 + Math.sin(time * 1.4 + index * 0.4) * 0.045;
     } else {
-      mesh.current.rotation.y = Math.sin(time * 0.4 + phase) * 0.22;
+      mesh.current.rotation.y = Math.sin(time * 0.4 + phase) * 0.08;
     }
 
     if (halo.current) {
@@ -284,18 +291,15 @@ function ProviderTile({
       floatingRange={[-0.09, 0.09]}
     >
       <group position={position}>
+        {/* White card, so the brand mark reads exactly as it does on paper. */}
         <mesh ref={mesh}>
           <boxGeometry args={[1.15, 1.15, 0.12]} />
-          <meshStandardMaterial
-            map={texture}
-            metalness={0.2}
-            roughness={0.32}
-            color="#c9d4e8"
-            emissive="#ffffff"
-            emissiveMap={texture}
-            emissiveIntensity={0.34}
-            toneMapped={false}
-          />
+          <meshStandardMaterial color="#ffffff" metalness={0.05} roughness={0.45} />
+        </mesh>
+        {/* The real logo, floating just in front of the card face. */}
+        <mesh position={[0, 0, 0.062]}>
+          <planeGeometry args={[0.84, 0.84]} />
+          <meshBasicMaterial map={texture} transparent toneMapped={false} depthWrite={false} />
         </mesh>
         {/* Soft backing glow so tiles separate from the dark background. */}
         <mesh ref={halo} position={[0, 0, -0.1]}>
@@ -410,7 +414,11 @@ export function BridgeScene({ reducedMotion }: { reducedMotion: boolean }) {
       <Tower x={-TOWER_X} />
       <Tower x={TOWER_X} />
       <Cables reducedMotion={reducedMotion} />
-      <ProviderField reducedMotion={reducedMotion} />
+      {/* useTexture suspends while the brand SVGs decode, so the bridge renders
+          first and the tiles drop in as soon as they are ready. */}
+      <Suspense fallback={null}>
+        <ProviderField reducedMotion={reducedMotion} />
+      </Suspense>
 
       {/* Cheap studio lighting via drei — renders to a cube target, no HDR file. */}
       <Environment resolution={128}>
